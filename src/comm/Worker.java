@@ -142,6 +142,7 @@ public class Worker extends Thread {
                             break;
                             case "insert": { //insert into table values ( val1 , val2 , val3 )
                                 //TODO get insert
+                                //parse values
                                 String tableName = tokenizer.nextToken();//
                                 tokenizer.nextToken();
 
