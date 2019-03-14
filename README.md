@@ -11,9 +11,12 @@ using Redis as a key value store.
 
 > USE DATABASE
 
-### Queries to come
+### Working on
 > INSERT INTO TABLE
 
 > DELETE FROM TABLE
 
-> SELECT 
+### Queries to come
+> SELECT +  JOIN
+
+> SELECT +  GROUP BY
