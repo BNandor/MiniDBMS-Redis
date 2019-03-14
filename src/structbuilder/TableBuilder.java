@@ -4,6 +4,7 @@ import com.sun.corba.se.spi.orbutil.threadpool.Work;
 import comm.Server;
 import comm.Worker;
 import persistence.RedisConnector;
+import persistence.XML;
 import struct.*;
 
 import java.rmi.ServerException;
@@ -39,7 +40,19 @@ public class TableBuilder {
 
                     element=tokenizer.nextToken();//foreign table.column
                     StringTokenizer dot = new StringTokenizer(element,".");
-                    ForeignKey fk = new ForeignKey(attr.getName(),dot.nextToken(),dot.nextToken());
+                    String refTable,refAttr;
+                    refTable=dot.nextToken();
+                    refAttr=dot.nextToken();
+
+                    if(!XML.tableExists(refTable,Worker.currentlyWorking)){
+                        throw new ServerException("Referenced table does not exist "+refTable);
+                    }
+                    if(!XML.attributeExists(refTable,refAttr,Worker.currentlyWorking)){
+                        throw new ServerException("Referenced attribute does not exist "+refAttr);
+                    }
+
+                    ForeignKey fk = new ForeignKey(attr.getName(),refTable,refAttr);
+
                     fks.getForeignKeyList().add(fk);
                     tokenizer.nextToken();
                 }else{
