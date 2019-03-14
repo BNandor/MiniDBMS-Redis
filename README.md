@@ -11,4 +11,9 @@ using Redis as a key value store.
 
 > USE DATABASE
 
+### Queries to come
+> INSERT INTO TABLE
 
+> DELETE FROM TABLE
+
+> SELECT 
