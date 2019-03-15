@@ -54,6 +54,7 @@ public class Worker extends Thread {
         }
         return false;
     }
+
     @Override
     public void run() {
         super.run();

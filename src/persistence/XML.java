@@ -2,9 +2,12 @@ package persistence;
 
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import comm.Worker;
+import struct.Attribute;
 import struct.Databases;
+import struct.Table;
 
 import java.io.*;
+import java.rmi.ServerException;
 
 public class XML {
 
@@ -51,6 +54,46 @@ public class XML {
         return databasesInstance;
     }
 
+    public static boolean tableExists(String name,int dbindex){
+        try {
+            if(dbindex == -1 || dbindex >= getDatabasesInstance().getDatabaseList().size()){
+                return false;
+            }
+
+            for (Table t : getDatabasesInstance().getDatabaseList().get(dbindex).getTables().getTableList()) {
+                if (t.getTableName() != null && t.getTableName().equals(name)) {
+                    return true;
+                }
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public static boolean attributeExists(String tableName,String attributeName,int dbindex){
+
+        try {
+
+            if(dbindex == -1 || dbindex >= getDatabasesInstance().getDatabaseList().size()){
+                return false;
+            }
+
+            for (Table t : getDatabasesInstance().getDatabaseList().get(dbindex).getTables().getTableList()) {
+                if (t.getTableName() != null && t.getTableName().equals(tableName)) {
+                    for(Attribute attr:t.getTableStructure().getAttributeList()){
+                        if(attr.getName()!=null && attr.getName().equals(attributeName)){
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
     public static void writeDatabasesInstance(Databases db) throws IOException {
         System.out.println("XML: writing database to file"+Worker.path_to_work + "/" + databasesName);
         XmlMapper xmlMapper = new XmlMapper();
