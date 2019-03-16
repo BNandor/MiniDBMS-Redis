@@ -74,6 +74,15 @@ public class RedisConnector {//Lifecycle: start thread, create connection, {inse
     public void set(String key,String value){
         j.set(key,value);
     }
+    public void addToSet(String key, String value){
+        j.sadd(key,value);
+    }
+    public void setColumn(String key,String column,String value){
+        j.hset(key,column,value);
+    }
+    public void increaseReferenceCount(String hashName){
+        j.hincrBy(hashName,Worker.referenceCountName,1);
+    }
     public String get(String key){
         return j.get(key);
     }
