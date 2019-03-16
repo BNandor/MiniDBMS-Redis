@@ -67,12 +67,15 @@ public class Worker extends Thread {
                     e.printStackTrace();
                 }
             }
+
             String query = jobs.poll();
 
             try {
 
 
                 switch (query) {
+
+
                     case killSwitch:{
                         if(RDB.running()){
                             RDB.killServer();
