@@ -21,6 +21,7 @@ import java.util.StringTokenizer;
 public class Worker extends Thread {
     public static final String killSwitch="exit";
     public static final String path_to_work = "DBMS";
+    public static final String referenceCountName="__referenced__";
     private Queue<String> jobs;
     private Socket clientSocket;
     private PrintWriter messageSender;
@@ -152,7 +153,6 @@ public class Worker extends Thread {
                                 String tableName=null;
 
                                 try{
-                                    tokenizer.nextToken();//into
                                     tableName = tokenizer.nextToken();//table
                                     tokenizer.nextToken();//values
                                 }catch (Exception e){
