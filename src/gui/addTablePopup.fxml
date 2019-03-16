@@ -12,195 +12,218 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox alignment="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity"
-      prefHeight="700.0" prefWidth="700.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="gui.AddTablePopupController">
+<VBox alignment="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="700.0" prefWidth="700.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="gui.AddTablePopupController">
     <children>
-        <VBox prefHeight="106.0" prefWidth="800.0">
+        <VBox prefHeight="68.0" prefWidth="700.0">
             <children>
-                <GridPane prefHeight="192.0" prefWidth="800.0">
+                <GridPane prefHeight="159.0" prefWidth="700.0">
                     <columnConstraints>
-                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="496.0" minWidth="0.0" prefWidth="141.0"/>
-                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="705.0" minWidth="10.0" prefWidth="559.0"/>
+                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="496.0" minWidth="0.0" prefWidth="141.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="705.0" minWidth="10.0" prefWidth="559.0" />
                     </columnConstraints>
                     <rowConstraints>
-                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints maxHeight="33.0" minHeight="10.0" prefHeight="32.0" vgrow="SOMETIMES" />
+                  <RowConstraints maxHeight="18.0" minHeight="10.0" prefHeight="15.0" vgrow="SOMETIMES" />
                     </rowConstraints>
                     <children>
-                        <Label prefHeight="16.0" prefWidth="82.0" text="Table Name" GridPane.halignment="CENTER"
-                               GridPane.valignment="CENTER">
+                        <Label alignment="CENTER_RIGHT" prefHeight="16.0" prefWidth="203.0" text="Table Name" GridPane.halignment="CENTER" GridPane.valignment="CENTER">
                             <GridPane.margin>
-                                <Insets left="10.0" right="10.0"/>
+                                <Insets left="10.0" right="10.0" />
                             </GridPane.margin>
                         </Label>
-                        <TextField fx:id="tableNameField" prefHeight="26.0" prefWidth="497.0" GridPane.columnIndex="1"
-                                   GridPane.halignment="CENTER" GridPane.valignment="CENTER">
+                        <TextField fx:id="tableNameField" prefHeight="26.0" prefWidth="497.0" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.valignment="CENTER">
                             <GridPane.margin>
-                                <Insets left="10.0" right="10.0"/>
+                                <Insets left="10.0" right="10.0" />
                             </GridPane.margin>
                         </TextField>
+                  <Label fx:id="tableNameLabel" prefHeight="16.0" prefWidth="633.0" text="Please enter table name." textFill="RED" visible="false" GridPane.columnIndex="1" GridPane.rowIndex="1" GridPane.valignment="TOP">
+                     <GridPane.margin>
+                        <Insets left="10.0" right="10.0" />
+                     </GridPane.margin>
+                  </Label>
                     </children>
                 </GridPane>
             </children>
         </VBox>
-        <TableView fx:id="tableData" editable="true" prefHeight="278.0" prefWidth="700.0">
+        <TableView fx:id="tableData" editable="true" prefHeight="272.0" prefWidth="700.0">
             <columns>
-                <TableColumn fx:id="nameColumn" prefWidth="143.0" text="Column Name"/>
-                <TableColumn fx:id="typeColumn" prefWidth="75.0" text="Type"/>
-                <TableColumn fx:id="primaryKeyColumn" minWidth="0.0" prefWidth="145.0" text="Primary Key"/>
-                <TableColumn fx:id="foreignKeyColumn" prefWidth="218.0" text="Foreign Key"/>
-                <TableColumn fx:id="uniqueColumn" prefWidth="98.0" text="Unique"/>
-                <TableColumn fx:id="notNullColumn" prefWidth="95.0" text="Not Null"/>
+                <TableColumn fx:id="nameColumn" prefWidth="143.0" text="Column Name" />
+                <TableColumn fx:id="typeColumn" prefWidth="75.0" text="Type" />
+                <TableColumn fx:id="primaryKeyColumn" minWidth="0.0" prefWidth="145.0" text="Primary Key" />
+                <TableColumn fx:id="foreignKeyColumn" prefWidth="218.0" text="Foreign Key" />
+                <TableColumn fx:id="uniqueColumn" prefWidth="98.0" text="Unique" />
+                <TableColumn fx:id="notNullColumn" prefWidth="95.0" text="Not Null" />
             </columns>
             <columnResizePolicy>
-                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
             </columnResizePolicy>
         </TableView>
-        <VBox alignment="CENTER" prefHeight="301.0" prefWidth="700.0">
+        <VBox alignment="CENTER" prefHeight="412.0" prefWidth="674.0">
             <children>
-                <GridPane prefHeight="58.0" prefWidth="700.0">
+                <GridPane prefHeight="47.0" prefWidth="700.0">
                     <columnConstraints>
-                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="496.0" minWidth="0.0" prefWidth="141.0"/>
-                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="705.0" minWidth="10.0" prefWidth="559.0"/>
+                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="496.0" minWidth="0.0" prefWidth="141.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="705.0" minWidth="10.0" prefWidth="559.0" />
                     </columnConstraints>
                     <rowConstraints>
-                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints maxHeight="37.0" minHeight="2.0" prefHeight="21.0" vgrow="SOMETIMES" />
+                  <RowConstraints maxHeight="57.0" minHeight="0.0" prefHeight="12.0" vgrow="SOMETIMES" />
                     </rowConstraints>
                     <children>
-                        <Label prefHeight="16.0" prefWidth="120.0" text="Column Name" GridPane.halignment="CENTER"
-                               GridPane.valignment="CENTER">
+                        <Label alignment="CENTER_RIGHT" prefHeight="16.0" prefWidth="187.0" text="Column Name" GridPane.halignment="CENTER" GridPane.valignment="CENTER">
                             <GridPane.margin>
-                                <Insets left="10.0" right="10.0"/>
+                                <Insets left="10.0" right="10.0" />
                             </GridPane.margin>
                         </Label>
-                        <TextField fx:id="columnName" prefHeight="26.0" prefWidth="497.0" GridPane.columnIndex="1"
-                                   GridPane.halignment="CENTER" GridPane.valignment="CENTER">
+                        <TextField fx:id="columnName" prefHeight="26.0" prefWidth="497.0" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.valignment="CENTER">
                             <GridPane.margin>
-                                <Insets left="10.0" right="10.0"/>
+                                <Insets left="10.0" right="10.0" />
                             </GridPane.margin>
                         </TextField>
+                  <Label fx:id="columnNameLabel" prefHeight="26.0" prefWidth="539.0" text="Please enter column name." textFill="RED" visible="false" GridPane.columnIndex="1" GridPane.rowIndex="1" GridPane.valignment="TOP">
+                     <GridPane.margin>
+                        <Insets left="10.0" right="10.0" top="5.0" />
+                     </GridPane.margin>
+                  </Label>
                     </children>
+               <VBox.margin>
+                  <Insets bottom="10.0" top="10.0" />
+               </VBox.margin>
                 </GridPane>
-                <GridPane prefHeight="58.0" prefWidth="700.0">
+                <GridPane prefHeight="62.0" prefWidth="700.0">
                     <columnConstraints>
-                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="496.0" minWidth="0.0" prefWidth="141.0"/>
-                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="705.0" minWidth="10.0" prefWidth="559.0"/>
+                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="496.0" minWidth="0.0" prefWidth="141.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="705.0" minWidth="10.0" prefWidth="559.0" />
                     </columnConstraints>
                     <rowConstraints>
-                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints maxHeight="32.0" minHeight="10.0" prefHeight="26.0" vgrow="SOMETIMES" />
+                  <RowConstraints maxHeight="23.0" minHeight="10.0" prefHeight="23.0" vgrow="SOMETIMES" />
                     </rowConstraints>
                     <children>
-                        <Label prefHeight="16.0" prefWidth="120.0" text="Type" GridPane.halignment="CENTER"
-                               GridPane.valignment="CENTER">
+                        <Label alignment="CENTER_RIGHT" prefHeight="16.0" prefWidth="169.0" text="Type" GridPane.halignment="CENTER" GridPane.valignment="CENTER">
                             <GridPane.margin>
-                                <Insets left="10.0" right="10.0"/>
+                                <Insets left="10.0" right="10.0" />
                             </GridPane.margin>
                         </Label>
-                        <TextField fx:id="typeField" prefHeight="26.0" prefWidth="497.0" GridPane.columnIndex="1"
-                                   GridPane.halignment="CENTER" GridPane.valignment="CENTER">
+                        <TextField fx:id="typeField" prefHeight="26.0" prefWidth="497.0" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.valignment="CENTER">
                             <GridPane.margin>
-                                <Insets left="10.0" right="10.0"/>
+                                <Insets left="10.0" right="10.0" />
                             </GridPane.margin>
                         </TextField>
+                  <Label fx:id="typeNameLabel" prefHeight="0.0" prefWidth="539.0" text="Please enter type name." textFill="RED" visible="false" GridPane.columnIndex="1" GridPane.rowIndex="1" GridPane.valignment="CENTER">
+                     <GridPane.margin>
+                        <Insets left="10.0" right="10.0" top="5.0" />
+                     </GridPane.margin>
+                  </Label>
                     </children>
+               <VBox.margin>
+                  <Insets bottom="10.0" top="10.0" />
+               </VBox.margin>
+                </GridPane>
+                <GridPane prefHeight="0.0" prefWidth="700.0">
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="496.0" minWidth="0.0" prefWidth="141.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="705.0" minWidth="10.0" prefWidth="559.0" />
+                    </columnConstraints>
+                    <rowConstraints>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                    </rowConstraints>
+                    <children>
+                        <Label alignment="CENTER_RIGHT" prefHeight="16.0" prefWidth="172.0" text="Primary Key" GridPane.halignment="CENTER" GridPane.valignment="CENTER">
+                            <GridPane.margin>
+                                <Insets left="10.0" right="10.0" />
+                            </GridPane.margin>
+                        </Label>
+                        <CheckBox fx:id="primaryKey" mnemonicParsing="false" prefWidth="24.0" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.valignment="CENTER" />
+                    </children>
+               <padding>
+                  <Insets bottom="15.0" top="15.0" />
+               </padding>
                 </GridPane>
                 <GridPane prefHeight="63.0" prefWidth="700.0">
                     <columnConstraints>
-                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="496.0" minWidth="0.0" prefWidth="141.0"/>
-                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="705.0" minWidth="10.0" prefWidth="559.0"/>
+                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="496.0" minWidth="0.0" prefWidth="141.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="705.0" minWidth="10.0" prefWidth="559.0" />
                     </columnConstraints>
                     <rowConstraints>
-                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                     </rowConstraints>
                     <children>
-                        <Label prefHeight="16.0" prefWidth="124.0" text="Primary Key" GridPane.halignment="CENTER"
-                               GridPane.valignment="CENTER">
+                        <Label alignment="CENTER_RIGHT" prefHeight="16.0" prefWidth="175.0" text="Foreign Key" GridPane.halignment="CENTER" GridPane.valignment="CENTER">
                             <GridPane.margin>
-                                <Insets left="10.0" right="10.0"/>
+                                <Insets left="10.0" right="10.0" />
                             </GridPane.margin>
                         </Label>
-                        <CheckBox fx:id="primaryKey" mnemonicParsing="false" GridPane.columnIndex="1"
-                                  GridPane.halignment="CENTER" GridPane.valignment="CENTER"/>
-                    </children>
-                </GridPane>
-                <GridPane prefHeight="63.0" prefWidth="700.0">
-                    <columnConstraints>
-                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="496.0" minWidth="0.0" prefWidth="141.0"/>
-                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="705.0" minWidth="10.0" prefWidth="559.0"/>
-                    </columnConstraints>
-                    <rowConstraints>
-                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
-                    </rowConstraints>
-                    <children>
-                        <Label prefHeight="16.0" prefWidth="124.0" text="Foreign Key" GridPane.halignment="CENTER"
-                               GridPane.valignment="CENTER">
+                        <TextField fx:id="foreignKey" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.valignment="CENTER">
                             <GridPane.margin>
-                                <Insets left="10.0" right="10.0"/>
-                            </GridPane.margin>
-                        </Label>
-                        <TextField fx:id="foreignKey" GridPane.columnIndex="1" GridPane.halignment="CENTER"
-                                   GridPane.valignment="CENTER">
-                            <GridPane.margin>
-                                <Insets left="10.0" right="10.0"/>
+                                <Insets left="10.0" right="10.0" />
                             </GridPane.margin>
                         </TextField>
                     </children>
+               <VBox.margin>
+                  <Insets bottom="10.0" top="10.0" />
+               </VBox.margin>
+               <padding>
+                  <Insets bottom="10.0" top="10.0" />
+               </padding>
                 </GridPane>
-                <GridPane prefHeight="71.0" prefWidth="700.0">
+                <GridPane prefHeight="0.0" prefWidth="700.0">
                     <columnConstraints>
-                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="496.0" minWidth="0.0" prefWidth="141.0"/>
-                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="705.0" minWidth="10.0" prefWidth="559.0"/>
+                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="496.0" minWidth="0.0" prefWidth="141.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="705.0" minWidth="10.0" prefWidth="559.0" />
                     </columnConstraints>
                     <rowConstraints>
-                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                     </rowConstraints>
                     <children>
-                        <Label prefHeight="16.0" prefWidth="82.0" text="Unique" GridPane.halignment="CENTER"
-                               GridPane.valignment="CENTER">
+                        <Label alignment="CENTER_RIGHT" prefHeight="16.0" prefWidth="174.0" text="Unique" GridPane.halignment="CENTER" GridPane.valignment="CENTER">
                             <GridPane.margin>
-                                <Insets left="10.0" right="10.0"/>
+                                <Insets left="10.0" right="10.0" />
                             </GridPane.margin>
                         </Label>
-                        <CheckBox fx:id="isUnique" mnemonicParsing="false" GridPane.columnIndex="1"
-                                  GridPane.halignment="CENTER" GridPane.valignment="CENTER"/>
+                        <CheckBox fx:id="isUnique" mnemonicParsing="false" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.valignment="CENTER" />
                     </children>
+               <padding>
+                  <Insets bottom="15.0" top="15.0" />
+               </padding>
                 </GridPane>
-                <GridPane prefHeight="61.0" prefWidth="700.0">
+                <GridPane prefHeight="6.0" prefWidth="700.0">
                     <columnConstraints>
-                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="496.0" minWidth="0.0" prefWidth="141.0"/>
-                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="705.0" minWidth="10.0" prefWidth="559.0"/>
+                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="496.0" minWidth="0.0" prefWidth="141.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="705.0" minWidth="10.0" prefWidth="559.0" />
                     </columnConstraints>
                     <rowConstraints>
-                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                     </rowConstraints>
                     <children>
-                        <Label prefHeight="16.0" prefWidth="82.0" text="Not Null" GridPane.halignment="CENTER"
-                               GridPane.valignment="CENTER">
+                        <Label alignment="CENTER_RIGHT" prefHeight="16.0" prefWidth="199.0" text="Not Null" GridPane.halignment="CENTER" GridPane.valignment="CENTER">
                             <GridPane.margin>
-                                <Insets left="10.0" right="10.0"/>
+                                <Insets left="10.0" right="10.0" />
                             </GridPane.margin>
                         </Label>
-                        <CheckBox fx:id="notNull" mnemonicParsing="false" GridPane.columnIndex="1"
-                                  GridPane.halignment="CENTER" GridPane.valignment="CENTER"/>
+                        <CheckBox fx:id="notNull" mnemonicParsing="false" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.valignment="CENTER" />
                     </children>
+               <padding>
+                  <Insets bottom="15.0" top="15.0" />
+               </padding>
                 </GridPane>
-                <GridPane alignment="CENTER" prefHeight="60.0" prefWidth="700.0">
+                <GridPane alignment="CENTER" prefHeight="70.0" prefWidth="700.0">
                     <columnConstraints>
-                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0"/>
-                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0"/>
-                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0"/>
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
                     </columnConstraints>
                     <rowConstraints>
-                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                     </rowConstraints>
                     <children>
-                        <Button fx:id="submitButton" alignment="CENTER" mnemonicParsing="false" onAction="#updateView"
-                                text="Submit" GridPane.halignment="CENTER" GridPane.valignment="CENTER"/>
-                        <Button fx:id="addButton" mnemonicParsing="false" onAction="#addToTable" text="Add"
-                                GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.valignment="CENTER"/>
-                        <Button fx:id="cancelButton" mnemonicParsing="false" onAction="#closePopup" text="Cancel"
-                                GridPane.columnIndex="2" GridPane.halignment="CENTER" GridPane.valignment="CENTER"/>
+                        <Button fx:id="submitButton" alignment="CENTER" mnemonicParsing="false" onAction="#updateView" prefHeight="29.0" prefWidth="74.0" text="Submit" GridPane.halignment="CENTER" GridPane.valignment="TOP" />
+                        <Button fx:id="addButton" mnemonicParsing="false" onAction="#addToTable" prefHeight="29.0" prefWidth="74.0" text="Add" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.valignment="TOP" />
+                        <Button fx:id="cancelButton" mnemonicParsing="false" onAction="#closePopup" prefHeight="29.0" prefWidth="74.0" text="Cancel" GridPane.columnIndex="2" GridPane.halignment="CENTER" GridPane.valignment="TOP" />
                     </children>
+               <padding>
+                  <Insets top="20.0" />
+               </padding>
                 </GridPane>
             </children>
         </VBox>

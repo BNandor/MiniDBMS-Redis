@@ -19,6 +19,9 @@ public class AddTablePopupController implements Initializable {
         this.databaseName = databaseName;
     }
 
+    public Label tableNameLabel;
+    public Label columnNameLabel;
+    public Label typeNameLabel;
     public TextField tableNameField;
     public TableView tableData;
     public TextField columnName;
@@ -47,6 +50,10 @@ public class AddTablePopupController implements Initializable {
     }
 
     public void updateView(ActionEvent actionEvent) {
+        if (!validate()) {
+            return;
+        }
+
         TableRow tableRow = new TableRow();
         tableRow.setColumnName(columnName.getText());
         tableRow.setType(typeField.getText());
@@ -135,11 +142,43 @@ public class AddTablePopupController implements Initializable {
             stage.close();
         } else {
             clearFields();
+
+            tableNameLabel.setVisible(false);
+            columnNameLabel.setVisible(false);
+            typeNameLabel.setVisible(false);
+
             Alert alert = new Alert(Alert.AlertType.ERROR, answer);
             alert.setTitle("Error Dialog");
             alert.setHeaderText(null);
             alert.showAndWait();
         }
+    }
+
+    private boolean validate() {
+        boolean ok = true;
+
+        if (tableNameField.getText().isEmpty()) {
+            tableNameLabel.setVisible(true);
+            ok = false;
+        } else {
+            tableNameLabel.setVisible(false);
+        }
+
+        if (columnName.getText().isEmpty()) {
+            columnNameLabel.setVisible(true);
+            ok = false;
+        } else {
+            columnNameLabel.setVisible(false);
+        }
+
+        if (typeField.getText().isEmpty()) {
+            typeNameLabel.setVisible(true);
+            ok = false;
+        } else {
+            typeNameLabel.setVisible(false);
+        }
+
+        return ok;
     }
 
     public void closePopup(ActionEvent actionEvent) {

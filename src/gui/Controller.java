@@ -104,6 +104,7 @@ public class Controller implements Initializable {
                     alert.setTitle("Error Dialog");
                     alert.setHeaderText(null);
                     alert.showAndWait();
+                    break;
                 }
 
                 sql = "";
@@ -138,6 +139,7 @@ public class Controller implements Initializable {
                     alert.setTitle("Error Dialog");
                     alert.setHeaderText(null);
                     alert.showAndWait();
+                    break;
                 }
 
                 sql = "";
