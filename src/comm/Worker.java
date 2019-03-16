@@ -2,6 +2,7 @@ package comm;
 
 import persistence.RedisConnector;
 import persistence.XML;
+import queries.InsertQuery;
 import struct.Database;
 import struct.IndexFile;
 import struct.Table;
@@ -102,7 +103,7 @@ public class Worker extends Thread {
 
                                             for (Database d : XML.getDatabasesInstance().getDatabaseList()) {
                                                 if(d.getDatabaseName().equals(name)){
-                                                    throw new ServerException("Cannot create database "+ name+" it is already present");
+                                                    throw new comm.ServerException("Cannot create database "+ name+" it is already present");
                                                 }
                                             }
                                             Database d = new Database();
@@ -112,7 +113,7 @@ public class Worker extends Thread {
                                             DatabaseBuilder.createDatabase(name);
                                         } catch (FileNotFoundException e) {
                                             e.printStackTrace();
-                                            throw new ServerException("Cannot find xml file:" + e.getMessage());
+                                            throw new comm.ServerException("Cannot find xml file:" + e.getMessage());
                                         }
                                     }
                                     break;
@@ -137,7 +138,7 @@ public class Worker extends Thread {
 
                                         } catch (FileNotFoundException | ServerException e) {
                                             e.printStackTrace();
-                                            throw new ServerException("Error creating table:" + e.getMessage());
+                                            throw new comm.ServerException("Error creating table:" + e.getMessage());
                                         }
 
                                     }
@@ -147,10 +148,23 @@ public class Worker extends Thread {
                             case "insert": { //insert into table values ( val1 , val2 , val3 )
                                 //TODO get insert
                                 //parse values
-                                String tableName = tokenizer.nextToken();//
-                                tokenizer.nextToken();
+
+                                String tableName=null;
+
+                                try{
+                                    tokenizer.nextToken();//into
+                                    tableName = tokenizer.nextToken();//table
+                                    tokenizer.nextToken();//values
+                                }catch (Exception e){
+                                    throw new comm.ServerException("Error inserting into table, syntax error");
+                                }
 
 
+                                Table insertTable = XML.getTable(tableName,currentlyWorking);
+                                if(insertTable==null){
+                                    throw new comm.ServerException("Error inserting into table, table "+tableName+" does not exist");
+                                }
+                                InsertQuery.insert(insertTable,tokenizer);
                             }
                             break;
                             case "drop": {
@@ -168,12 +182,13 @@ public class Worker extends Thread {
                                             }
 
                                             if (i == XML.getDatabasesInstance().getDatabaseList().size()) {
-                                                throw new ServerException("Error dropping database " + name + ": Does not exist");
+                                                throw new comm.ServerException("Error dropping database " + name + ": Does not exist");
                                             }
 
                                             if (currentlyWorking == i) {
                                                 System.out.println("Worker:trying to delete database in use");
                                                 //TODO solve this issue
+                                                RDB.killServer();
                                                 currentlyWorking = -1;
                                             }
 
@@ -190,8 +205,8 @@ public class Worker extends Thread {
 
                                         }
                                     }
-
                                     break;
+
                                     case "table": {
                                         String name = tokenizer.nextToken();
                                         int i = 0;
@@ -204,12 +219,12 @@ public class Worker extends Thread {
                                             }
 
                                             if (i == XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().size()) {
-                                                throw new ServerException("Cannot delete table " + name + " it does not exist");
+                                                throw new comm.ServerException("Cannot delete table " + name + " it does not exist");
                                             }
 
                                             if (!RDB.running()) {
                                                 System.out.println("Worker:Error: drop table redis not running");
-                                                throw new ServerException("Cannot drop table " + name + " Redis not running");
+                                                throw new comm.ServerException("Cannot drop table " + name + " Redis not running");
                                             }
 
                                             RDB.select(XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().get(i).getSlotNumber());
@@ -235,7 +250,7 @@ public class Worker extends Thread {
 
                                         } catch (FileNotFoundException e) {
                                             e.printStackTrace();
-                                            throw new ServerException(e.getMessage());
+                                            throw new comm.ServerException(e.getMessage());
                                         }
 
                                     }
@@ -266,7 +281,7 @@ public class Worker extends Thread {
                                     }
 
                                     if (i == XML.getDatabasesInstance().getDatabaseList().size()) {
-                                        throw new ServerException("Cannot use database " + object + " as it does not exist");
+                                        throw new comm.ServerException("Cannot use database " + object + " as it does not exist");
                                     }
 
                                     if (RDB.running()) {
@@ -288,7 +303,7 @@ public class Worker extends Thread {
                 //ON ok, send OK
                 messageSender.write("OK" + "\n");
                 messageSender.flush();
-            } catch (ServerException ex) {
+            } catch (comm.ServerException ex) {
                 //If anything goes wrong, send the message
                 messageSender.write(ex.getMessage() + "\n");
                 messageSender.flush();

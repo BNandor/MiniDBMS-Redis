@@ -8,6 +8,9 @@ import struct.Table;
 
 import java.io.*;
 import java.rmi.ServerException;
+import java.util.ArrayList;
+
+import static java.util.stream.Collectors.toList;
 
 public class XML {
 
@@ -52,6 +55,19 @@ public class XML {
             }
         }
         return databasesInstance;
+    }
+    public static Table getTable(String tableName,int currentlyWorking) throws comm.ServerException {
+        try {
+            if(currentlyWorking == -1 || currentlyWorking >= getDatabasesInstance().getDatabaseList().size()){
+                throw new comm.ServerException("Server has no selected database");
+            }
+            ArrayList<Table> list = ((ArrayList<Table>)(getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().stream().filter(t->t.getTableName().equals(tableName)).collect(toList())));
+            if(list.size()==0)return null;
+            return list.get(0);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public static boolean tableExists(String name,int dbindex){

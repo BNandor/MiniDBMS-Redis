@@ -121,6 +121,7 @@ public class TableBuilder {
 
         //Worker.RDB.save();
         //Loop over foreign key attributes, and create index files
+        //TODO check if referenced attribute is primary key, or at least unique
         for (ForeignKey fk:fks.getForeignKeyList()){
             set=false;
             for(int i=1;i<RedisConnector.num_of_tables;i++){

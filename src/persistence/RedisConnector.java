@@ -87,6 +87,13 @@ public class RedisConnector {//Lifecycle: start thread, create connection, {inse
         j.del(key);
     }
 
+
+
+
+    public boolean keyExists(String key){
+        return j.exists(key);
+    }
+
     @Override
     protected void finalize() throws Throwable {
         super.finalize();
