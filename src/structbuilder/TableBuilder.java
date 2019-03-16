@@ -47,6 +47,7 @@ public class TableBuilder {
                     if(!XML.tableExists(refTable,Worker.currentlyWorking)){
                         throw new ServerException("Referenced table does not exist "+refTable);
                     }
+                    //TODO check if referenced attribute is of type id, or at least unique
                     if(!XML.attributeExists(refTable,refAttr,Worker.currentlyWorking)){
                         throw new ServerException("Referenced attribute does not exist "+refAttr);
                     }
@@ -94,20 +95,47 @@ public class TableBuilder {
             }
         }
 
-        Worker.RDB.save();
-        //Loop over unique attributes
+        if(table_num == -1){
+            throw new ServerException("Error creating table, no free slot left in database, increase slot size in the conf file please");
+        }
+
+        //Worker.RDB.save();
+        //Loop over unique attributes and create index tables
 
         IndexFiles indexFiles = new IndexFiles();
-
+        boolean set;
         for(Unique u:uniqueAttributes.getUniqueList()){
+            set=false;
             for(int i=1;i<RedisConnector.num_of_tables;i++){
                 if(Worker.RDB.get(i+"")==null){
+                    set=true;
                     Worker.RDB.set(i+"","taken");
                     indexFiles.getIndexFiles().add(new IndexFile(i,u.getName()));
                     break;
                 }
             }
+            if(!set){
+                throw new ServerException("Error creating table, no free slot left in database, increase slot size in the conf file please");
+            }
         }
+
+        //Worker.RDB.save();
+        //Loop over foreign key attributes, and create index files
+        for (ForeignKey fk:fks.getForeignKeyList()){
+            set=false;
+            for(int i=1;i<RedisConnector.num_of_tables;i++){
+                if(Worker.RDB.get(i+"")==null){
+                    Worker.RDB.set(i+"","taken");
+                    set=true;
+                    indexFiles.getIndexFiles().add(new IndexFile(i,fk.getName()));
+                    break;
+                }
+            }
+            if(!set){
+                throw new ServerException("Error creating table, no free slot left in database, increase slot size in the conf file please");
+            }
+        }
+
         Worker.RDB.save();
         return new Table(name,table_num,0,structure,pk,fks,uniqueAttributes,indexFiles);
     }
