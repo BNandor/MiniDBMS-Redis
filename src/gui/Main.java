@@ -12,7 +12,8 @@ import javafx.stage.WindowEvent;
 public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
-        Parent root = FXMLLoader.load(getClass().getResource("userInterface.fxml"));
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("userInterface.fxml"));
+        Parent root = loader.load();
 
         primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
             @Override
@@ -24,8 +25,11 @@ public class Main extends Application {
         primaryStage.setTitle("MiniDBMS");
         primaryStage.setScene(new Scene(root));
         primaryStage.setMinWidth(618);
-        primaryStage.setMinHeight(600);
+        primaryStage.setMinHeight(629);
         primaryStage.show();
+
+        Controller controller = loader.getController();
+        controller.setup();
     }
 
     public static void main(String[] args) {
