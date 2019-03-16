@@ -95,7 +95,17 @@ public class Controller implements Initializable {
 
             if (processedLine.contains(";")) {
                 sql += processedLine.replaceFirst(".$", "").trim();
-                System.out.println(sql);
+
+                Client.getClient().write(sql + "\n");
+                String answer = Client.getClient().readLine();
+
+                if (!answer.equals("OK")) {
+                    Alert alert = new Alert(Alert.AlertType.ERROR, answer);
+                    alert.setTitle("Error Dialog");
+                    alert.setHeaderText(null);
+                    alert.showAndWait();
+                }
+
                 sql = "";
             } else {
                 sql += processedLine + " ";
@@ -119,7 +129,17 @@ public class Controller implements Initializable {
 
             if (processedLine.contains(";")) {
                 sql += processedLine.replaceFirst(".$", "").trim();
-                System.out.println(sql);
+
+                Client.getClient().write(sql + "\n");
+                String answer = Client.getClient().readLine();
+
+                if (!answer.equals("OK")) {
+                    Alert alert = new Alert(Alert.AlertType.ERROR, answer);
+                    alert.setTitle("Error Dialog");
+                    alert.setHeaderText(null);
+                    alert.showAndWait();
+                }
+
                 sql = "";
             } else {
                 sql += processedLine + " ";
