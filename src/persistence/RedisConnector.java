@@ -8,6 +8,7 @@ import javax.naming.OperationNotSupportedException;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Set;
 
 public class RedisConnector {//Lifecycle: start thread, create connection, {insert, get, select}, kill
     public static final int num_of_tables=30;
@@ -67,41 +68,58 @@ public class RedisConnector {//Lifecycle: start thread, create connection, {inse
         if(redisProcess==null)return false;
         return redisProcess.isAlive();
     }
-
-    public  void connect(){
-        j = new Jedis("localhost",6379);
-    }
-    public void set(String key,String value){
-        j.set(key,value);
-    }
-    public void addToSet(String key, String value){
-        j.sadd(key,value);
-    }
-    public void setColumn(String key,String column,String value){
-        j.hset(key,column,value);
-    }
-    public void increaseReferenceCount(String hashName){
-        j.hincrBy(hashName,Worker.referenceCountName,1);
-    }
-    public String get(String key){
-        return j.get(key);
-    }
     public void select(int slot){
         j.select(slot);
     }
     public void save(){
         j.save();
     }
+    public  void connect(){
+        j = new Jedis("localhost",6379);
+    }
+
+
+
+    public void addToSet(String key, String value){
+        j.sadd(key,value);
+    }
+
+    public void set(String key,String value){
+        j.set(key,value);
+    }
+    public void setColumn(String key,String column,String value){
+        j.hset(key,column,value);
+    }
+
+
+
+    public String get(String key){
+        return j.get(key);
+    }
+    public String getColumn(String key,String column){
+        return j.hget(key,column);
+    }
+    public long getSizeOfSet(String key){
+        return j.scard(key);
+    }
+    public void increaseReferenceCount(String hashName){
+        j.hincrBy(hashName,Worker.referenceCountName,1);
+    }
+    public void increaseReferenceCount(String hashName,long amount){
+        j.hincrBy(hashName,Worker.referenceCountName,amount);
+    }
+
+
     public void delkey(String key){
         j.del(key);
     }
-
-
-
-
     public boolean keyExists(String key){
         return j.exists(key);
     }
+    public Set<String> getAllKeys(){
+        return j.keys("*");
+    }
+
 
     @Override
     protected void finalize() throws Throwable {

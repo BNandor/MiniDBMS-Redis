@@ -78,7 +78,6 @@ public class InsertQuery {
         }
 
         // at this point, everything should be fine
-        //TODO update index files
             //Insert unique values into index files
             for(UniqueEntry entry:uniqueEntries){
                 Worker.RDB.select(entry.slot);
@@ -89,15 +88,16 @@ public class InsertQuery {
             for(ForeignKeyEntry entry:foreignKeyEntries){
                 Worker.RDB.select(entry.slot);
                 Worker.RDB.addToSet(entry.key,primaryKey);
-                Worker.RDB.select(entry.referencedTableSlot);//TODO update referenced column in referenced table
+                Worker.RDB.select(entry.referencedTableSlot);// SOLVED update referenced column in referenced table
                 Worker.RDB.increaseReferenceCount(entry.key);
             }
-        //TODO insert values into table
+
+        //SOLVED insert values into table
         Worker.RDB.select(table.getSlotNumber());
         for(InputEntry entry:input){
             Worker.RDB.setColumn(primaryKey,entry.attributeName,entry.value);
         }
-        //Insert referenced column
+        //Insert referenced column,with initial value of 0
         Worker.RDB.setColumn(primaryKey,Worker.referenceCountName,0+"");
         //save all of the changes
         Worker.RDB.save();

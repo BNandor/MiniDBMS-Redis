@@ -1,8 +1,10 @@
 package comm;
 
+import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
 import persistence.RedisConnector;
 import persistence.XML;
 import queries.InsertQuery;
+import queries.misc.ConstraintChecker;
 import struct.Database;
 import struct.IndexFile;
 import struct.Table;
@@ -147,9 +149,6 @@ public class Worker extends Thread {
                             }
                             break;
                             case "insert": { //insert into table values ( val1 , val2 , val3 )
-                                //TODO get insert
-                                //parse values
-
                                 String tableName=null;
 
                                 try{
@@ -187,7 +186,6 @@ public class Worker extends Thread {
 
                                             if (currentlyWorking == i) {
                                                 System.out.println("Worker:trying to delete database in use");
-                                                //TODO solve this issue
                                                 RDB.killServer();
                                                 currentlyWorking = -1;
                                             }
@@ -199,7 +197,6 @@ public class Worker extends Thread {
                                             XML.getDatabasesInstance().getDatabaseList().remove(i);
                                             XML.flush();
                                             DatabaseBuilder.deleteDatabase(name);
-                                            //TODO maybe delete everything from REDIS as well
                                         } catch (FileNotFoundException e) {
                                             e.printStackTrace();
 
@@ -211,6 +208,11 @@ public class Worker extends Thread {
                                         String name = tokenizer.nextToken();
                                         int i = 0;
                                         try {
+
+                                            if(!usingDatabase()){
+                                                throw new comm.ServerException("Error dropping table"+name+", not using any database");
+                                            }
+
                                             for (Table t : XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList()) {
                                                 if (t.getTableName() != null && t.getTableName().equals(name)) {
                                                     break;
@@ -227,22 +229,33 @@ public class Worker extends Thread {
                                                 throw new comm.ServerException("Cannot drop table " + name + " Redis not running");
                                             }
 
-                                            RDB.select(XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().get(i).getSlotNumber());
+                                            Table currentTable = XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().get(i);
+                                            String referencedKey=ConstraintChecker.anyRowIsBeingReferenced(currentTable);
+
+                                            if(referencedKey!=null){
+                                                throw new comm.ServerException("Cannot drop table , key  "+referencedKey+ "  is being referenced  from another table");
+                                            }
+
+                                            //at this point nothing is being referenced, we're good to go
+                                            //TODO Decrement keys that are being referenced by this table
+                                            ConstraintChecker.decrementReferencedColumns(currentTable);
+                                            
+                                            RDB.select(currentTable.getSlotNumber());
                                             RDB.dropselected();
-                                            if (XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().get(i).getIndexFiles() != null) {
-                                                for (IndexFile indexFile : XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().get(i).getIndexFiles().getIndexFiles()) {
+                                            if (currentTable.getIndexFiles() != null) {
+                                                for (IndexFile indexFile : currentTable.getIndexFiles().getIndexFiles()) {
                                                     RDB.select(indexFile.getIndexFileName());
                                                     RDB.dropselected();
                                                 }
                                             }
 
                                             RDB.select(0);
-                                            if (XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().get(i).getIndexFiles() != null) {
-                                                for (IndexFile indexFile : XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().get(i).getIndexFiles().getIndexFiles()) {
+                                            if (currentTable.getIndexFiles() != null) {
+                                                for (IndexFile indexFile : currentTable.getIndexFiles().getIndexFiles()) {
                                                     RDB.delkey(indexFile.getIndexFileName() + "");
                                                 }
                                             }
-                                            RDB.delkey(XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().get(i).getSlotNumber() + "");
+                                            RDB.delkey(currentTable.getSlotNumber() + "");
                                             RDB.save();
 
                                             XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().remove(i);
