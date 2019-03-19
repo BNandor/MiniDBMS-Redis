@@ -7,7 +7,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
-public class addDatabaseController {
+public class AddDatabaseController {
     public Button cancelButton;
     public Button addButton;
     public TextField databaseName;
@@ -17,7 +17,6 @@ public class addDatabaseController {
         String answer = Client.getClient().readLine();
 
         if (!answer.equals("OK")) {
-            databaseName.clear();
             Alert alert = new Alert(Alert.AlertType.ERROR, answer);
             alert.setTitle("Error Dialog");
             alert.setHeaderText(null);
