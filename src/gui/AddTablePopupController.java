@@ -14,11 +14,6 @@ import java.util.ResourceBundle;
 
 public class AddTablePopupController implements Initializable {
     private String databaseName;
-
-    public void setDatabaseName(String databaseName) {
-        this.databaseName = databaseName;
-    }
-
     public Label tableNameLabel;
     public Label columnNameLabel;
     public Label typeNameLabel;
@@ -39,6 +34,10 @@ public class AddTablePopupController implements Initializable {
     public TableColumn uniqueColumn;
     public TableColumn notNullColumn;
     public TextField typeField;
+
+    public void setDatabaseName(String databaseName) {
+        this.databaseName = databaseName;
+    }
 
     private void clearFields() {
         columnName.setText("");
@@ -135,7 +134,6 @@ public class AddTablePopupController implements Initializable {
             Client.getClient().write(sql + "\n");
             answer = Client.getClient().readLine();
         }
-
 
         if (answer.equals("OK")) {
             Stage stage = (Stage) addButton.getScene().getWindow();

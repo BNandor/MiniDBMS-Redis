@@ -17,22 +17,26 @@ import java.util.List;
 import java.util.ResourceBundle;
 
 public class InsertController implements Initializable {
+    private String tableName;
+    private String databaseName;
     public Label tableNameLabel;
     public TableView tableView;
     public Button cancelButton;
     public Button insertButton;
     public Button addButton;
-    private String tableName;
-    private String databaseName;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         tableView.setEditable(true);
     }
 
-    public void closePopup(ActionEvent actionEvent) {
+    private void exit() {
         Stage stage = (Stage) cancelButton.getScene().getWindow();
         stage.close();
+    }
+
+    public void closePopup(ActionEvent actionEvent) {
+        exit();
     }
 
     public void insertIntoTable(ActionEvent actionEvent) {
@@ -51,7 +55,9 @@ public class InsertController implements Initializable {
             return;
         }
 
-        for (int i = 0; i < tableView.getItems().size(); ++i) {
+        int i = 0;
+
+        while (i < tableView.getItems().size()) {
             String sql = "INSERT INTO " + tableName + " VALUES ( ";
             ObservableList<String> row = (ObservableList<String>) tableView.getItems().get(i);
 
@@ -60,7 +66,6 @@ public class InsertController implements Initializable {
             }
 
             sql += row.get(row.size() - 1) + " )\n";
-            System.out.println(sql);
             Client.getClient().write(sql);
             answer = Client.getClient().readLine();
 
@@ -69,14 +74,14 @@ public class InsertController implements Initializable {
                 alert.setTitle("Error Dialog");
                 alert.setHeaderText(null);
                 alert.showAndWait();
+                ++i;
             } else {
                 tableView.getItems().remove(i);
             }
         }
 
         if (tableView.getItems().size() == 0) {
-            Stage stage = (Stage) cancelButton.getScene().getWindow();
-            stage.close();
+            exit();
         }
     }
 
@@ -94,12 +99,9 @@ public class InsertController implements Initializable {
         this.tableName = tableName;
         this.databaseName = databaseName;
 
-        Platform.runLater(new Runnable() {
-            @Override
-            public void run() {
-                tableNameLabel.setText(tableName);
-                init();
-            }
+        Platform.runLater(() -> {
+            tableNameLabel.setText(tableName);
+            init();
         });
     }
 
@@ -107,6 +109,11 @@ public class InsertController implements Initializable {
         Databases databases = Client.getClient().getDatabases();
 
         if (databases == null) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Databases does not exist.");
+            alert.setTitle("Error Dialog");
+            alert.setHeaderText(null);
+            alert.showAndWait();
+            exit();
             return;
         }
 
@@ -121,6 +128,11 @@ public class InsertController implements Initializable {
         }
 
         if (database == null) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Database [ " + this.databaseName + " ] does not exist.");
+            alert.setTitle("Error Dialog");
+            alert.setHeaderText(null);
+            alert.showAndWait();
+            exit();
             return;
         }
 
@@ -135,6 +147,11 @@ public class InsertController implements Initializable {
         }
 
         if (table == null) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Table [ " + this.tableName + " ] does not exist.");
+            alert.setTitle("Error Dialog");
+            alert.setHeaderText(null);
+            alert.showAndWait();
+            exit();
             return;
         }
 
