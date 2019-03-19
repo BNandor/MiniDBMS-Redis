@@ -17,6 +17,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.rmi.ServerException;
 import java.util.ArrayDeque;
+import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.StringTokenizer;
 
@@ -157,13 +158,15 @@ public class Worker extends Thread {
                                 }catch (Exception e){
                                     throw new comm.ServerException("Error inserting into table, syntax error");
                                 }
-
-
                                 Table insertTable = XML.getTable(tableName,currentlyWorking);
                                 if(insertTable==null){
                                     throw new comm.ServerException("Error inserting into table, table "+tableName+" does not exist");
                                 }
-                                InsertQuery.insert(insertTable,tokenizer);
+                                try {
+                                    InsertQuery.insert(insertTable, tokenizer);
+                                }catch (NoSuchElementException ex){
+                                    throw new comm.ServerException("You have a syntax error in your insert somewhere");
+                                }
                             }
                             break;
                             case "drop": {
@@ -239,7 +242,7 @@ public class Worker extends Thread {
                                             //at this point nothing is being referenced, we're good to go
                                             //TODO Decrement keys that are being referenced by this table
                                             ConstraintChecker.decrementReferencedColumns(currentTable);
-                                            
+
                                             RDB.select(currentTable.getSlotNumber());
                                             RDB.dropselected();
                                             if (currentTable.getIndexFiles() != null) {
