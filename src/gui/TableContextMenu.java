@@ -58,6 +58,6 @@ public class TableContextMenu extends ContextMenu {
             }
         });
 
-        this.getItems().addAll(dropTable, insertIntoTable);
+        this.getItems().addAll(insertIntoTable, dropTable);
     }
 }
