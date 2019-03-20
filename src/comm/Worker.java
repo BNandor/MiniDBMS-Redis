@@ -145,6 +145,35 @@ public class Worker extends Thread {
                                             throw new comm.ServerException("Error creating table:" + e.getMessage());
                                         }
 
+                                    }break;
+                                    case "index":{//CREATE  INDEX Table.Column
+                                        tokenizer.nextToken();//Table.Column
+                                        StringTokenizer dotTokenizer = new StringTokenizer(tokenizer.nextToken(),".");
+                                        try{
+                                            String tableName = dotTokenizer.nextToken();
+                                            String columnName = dotTokenizer.nextToken();
+                                            //check whether we are using a database
+                                            if(!usingDatabase()){
+                                                throw new comm.ServerException("Error creating index file, not using any database");
+                                            }
+                                            if(!XML.tableExists(tableName,currentlyWorking)){
+                                                throw new comm.ServerException("Error creating index file, table "+ tableName+" does not exist");
+                                            }
+                                            if(!XML.attributeExists(tableName,columnName,currentlyWorking)){
+                                                throw new comm.ServerException("Error creating index file, column "+columnName+" does not existr");
+                                            }
+                                            //check whether column is unique, or foreign key, because for these types there already is an index file created automagically
+                                            if(XML.attributeIsUnique(tableName,columnName,currentlyWorking)){
+                                                throw new comm.ServerException("Error creating index file, column "+columnName+" is unique, there already exists an index file for it");
+                                            }
+                                            if(XML.attributeIsForeignKey(tableName,columnName,currentlyWorking)){
+                                                throw new comm.ServerException("Error creating index file, column "+columnName+" is foreign key, there already exists an index file for it");
+                                            }
+                                            
+                                        }catch (NoSuchElementException ex){
+                                            throw new comm.ServerException("Syntax error in create index");
+                                        }
+
                                     }
                                 }
                             }

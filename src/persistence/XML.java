@@ -2,9 +2,7 @@ package persistence;
 
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import comm.Worker;
-import struct.Attribute;
-import struct.Databases;
-import struct.Table;
+import struct.*;
 
 import java.io.*;
 import java.rmi.ServerException;
@@ -56,6 +54,7 @@ public class XML {
         }
         return databasesInstance;
     }
+
     public static Table getTable(String tableName,int currentlyWorking) throws comm.ServerException {
         try {
             if(currentlyWorking == -1 || currentlyWorking >= getDatabasesInstance().getDatabaseList().size()){
@@ -110,6 +109,44 @@ public class XML {
         }
         return false;
     }
+
+    public static boolean attributeIsUnique(String tableName,String attributeName, int dbindex){
+
+        try {
+            for (Table t : getDatabasesInstance().getDatabaseList().get(dbindex).getTables().getTableList()) {
+                if (t.getTableName() != null && t.getTableName().equals(tableName)) {
+                    for(Unique unique:t.getUniqeAttributes().getUniqueList()){
+                        if(unique.getName()!=null && unique.getName().equals(attributeName)){
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public static boolean attributeIsForeignKey(String tableName,String attributeName, int dbindex){
+        try {
+            for (Table t : getDatabasesInstance().getDatabaseList().get(dbindex).getTables().getTableList()) {
+                if (t.getTableName() != null && t.getTableName().equals(tableName)) {
+                    for(ForeignKey fk:t.getForeignKeys().getForeignKeyList()){
+                        if(fk.getName()!=null && fk.getName().equals(attributeName)){
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     public static void writeDatabasesInstance(Databases db) throws IOException {
         System.out.println("XML: writing database to file"+Worker.path_to_work + "/" + databasesName);
         XmlMapper xmlMapper = new XmlMapper();
