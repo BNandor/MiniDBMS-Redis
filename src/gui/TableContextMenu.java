@@ -6,6 +6,7 @@ import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.stage.Stage;
@@ -21,19 +22,25 @@ public class TableContextMenu extends ContextMenu {
         dropTable.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
-                Client.getClient().write("USE " + databaseName + "\n");
-                String answer = Client.getClient().readLine();
+                Alert dialog = new Alert(Alert.AlertType.CONFIRMATION, "Drop table [" + tableName + "]?",
+                        ButtonType.YES, ButtonType.CANCEL);
+                dialog.showAndWait();
 
-                if (answer.equals("OK")) {
-                    Client.getClient().write("DROP TABLE " + tableName + "\n");
-                    answer = Client.getClient().readLine();
-                }
+                if (dialog.getResult() == ButtonType.YES) {
+                    Client.getClient().write("USE " + databaseName + "\n");
+                    String answer = Client.getClient().readLine();
 
-                if (!answer.equals("OK")) {
-                    Alert alert = new Alert(Alert.AlertType.ERROR, answer);
-                    alert.setTitle("Error");
-                    alert.setHeaderText(null);
-                    alert.showAndWait();
+                    if (answer.equals("OK")) {
+                        Client.getClient().write("DROP TABLE " + tableName + "\n");
+                        answer = Client.getClient().readLine();
+                    }
+
+                    if (!answer.equals("OK")) {
+                        Alert alert = new Alert(Alert.AlertType.ERROR, answer);
+                        alert.setTitle("Error");
+                        alert.setHeaderText(null);
+                        alert.showAndWait();
+                    }
                 }
             }
         });

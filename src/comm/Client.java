@@ -13,7 +13,7 @@ import java.util.ArrayList;
 
 public class Client {
 
-    public static final String getDatabasesQuery="GET DATABASES";
+    public static final String getDatabasesQuery = "GET DATABASES";
     private static final int timeout = 2000;
     private int port;
     private String ip;
@@ -22,11 +22,16 @@ public class Client {
     private BufferedReader messageReader;
     private static Client instance;
 
-    public static Client getClient(){
-        if(instance == null){
-            instance=new Client("localhost",1695);
-            instance.connect();
+    public static Client getClient() {
+        if (instance == null) {
+            synchronized (Client.class) {
+                if (instance == null) {
+                    instance = new Client("localhost", 1695);
+                    instance.connect();
+                }
+            }
         }
+
         return instance;
     }
 
@@ -35,10 +40,10 @@ public class Client {
         this.ip = ip;
     }
 
-    private void waitTimeout(){
+    private void waitTimeout() {
         try {
-            while(!messageReader.ready()){
-                Thread.sleep(timeout/10);
+            while (!messageReader.ready()) {
+                Thread.sleep(timeout / 10);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -46,6 +51,7 @@ public class Client {
             e.printStackTrace();
         }
     }
+
     public void connect() {
         try {
             System.out.println("Client:Connecting to server");
@@ -53,12 +59,12 @@ public class Client {
             messageSender = new PrintWriter(mSocket.getOutputStream());
             messageReader = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
             System.out.println("Client:Succesfully connected to server");
-        }catch (IOException ex) {
+        } catch (IOException ex) {
             ex.printStackTrace();
         }
     }
 
-    public synchronized  void write(String text) {
+    public synchronized void write(String text) {
         if (mSocket == null) {
             throw new NotYetConnectedException();
         }
@@ -110,16 +116,16 @@ public class Client {
         return line;
     }
 
-    public synchronized Databases getDatabases(){
+    public synchronized Databases getDatabases() {
 
-        write(getDatabasesQuery+"\n");
+        write(getDatabasesQuery + "\n");
 
         try {
 
-            String xml="",line;
+            String xml = "", line;
             waitTimeout();
-            while(messageReader.ready() && (line=messageReader.readLine())!=null ){
-                xml=xml+line;
+            while (messageReader.ready() && (line = messageReader.readLine()) != null) {
+                xml = xml + line;
             }
             XmlMapper xmlReader = new XmlMapper();
             return xmlReader.readValue(xml, Databases.class);
