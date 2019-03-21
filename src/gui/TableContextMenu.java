@@ -16,6 +16,7 @@ public class TableContextMenu extends ContextMenu {
     public TableContextMenu(String databaseName, String tableName) {
         MenuItem dropTable = new MenuItem("Drop Table");
         MenuItem insertIntoTable = new MenuItem("Insert");
+        MenuItem createIndex = new MenuItem("Create Index");
 
         dropTable.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -58,6 +59,27 @@ public class TableContextMenu extends ContextMenu {
             }
         });
 
-        this.getItems().addAll(insertIntoTable, dropTable);
+        createIndex.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("createIndex.fxml"));
+                try {
+                    Scene scene = new Scene(loader.load());
+                    Stage stage = new Stage();
+                    stage.setScene(scene);
+                    stage.setMinWidth(500);
+                    stage.setMinHeight(150);
+
+                    CreateIndexController createIndexController = loader.getController();
+                    createIndexController.load(tableName, databaseName);
+
+                    stage.show();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        this.getItems().addAll(insertIntoTable, createIndex, dropTable);
     }
 }
