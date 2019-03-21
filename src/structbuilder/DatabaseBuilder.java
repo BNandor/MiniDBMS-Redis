@@ -17,7 +17,7 @@ public class DatabaseBuilder {
 
     public static synchronized void deleteDatabase(String databaseName){
         try {
-            if(Worker.path_to_work.equals("")||databaseName.equals("")){
+            if(Worker.path_to_work.equals("")||databaseName.equals("")||Worker.path_to_work.equals(" ")||databaseName.equals(" ")){
                 throw new ServerException("Cannot delete database, wrong database name");
             }
 

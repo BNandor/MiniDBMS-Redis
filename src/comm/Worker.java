@@ -5,6 +5,7 @@ import persistence.RedisConnector;
 import persistence.XML;
 import queries.InsertQuery;
 import queries.misc.ConstraintChecker;
+import queries.misc.CreateIndex;
 import struct.Database;
 import struct.IndexFile;
 import struct.Table;
@@ -22,9 +23,9 @@ import java.util.Queue;
 import java.util.StringTokenizer;
 
 public class Worker extends Thread {
-    public static final String killSwitch="exit";
+    public static final String killSwitch = "exit";
     public static final String path_to_work = "DBMS";
-    public static final String referenceCountName="__referenced__";
+    public static final String referenceCountName = "__referenced__";
     private Queue<String> jobs;
     private Socket clientSocket;
     private PrintWriter messageSender;
@@ -51,9 +52,10 @@ public class Worker extends Thread {
             e.printStackTrace();
         }
     }
-    private boolean usingDatabase(){
+
+    private boolean usingDatabase() {
         try {
-            return currentlyWorking!=-1 && currentlyWorking< XML.getDatabasesInstance().getDatabaseList().size();
+            return currentlyWorking != -1 && currentlyWorking < XML.getDatabasesInstance().getDatabaseList().size();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -81,8 +83,8 @@ public class Worker extends Thread {
                 switch (query) {
 
 
-                    case killSwitch:{
-                        if(RDB.running()){
+                    case killSwitch: {
+                        if (RDB.running()) {
                             RDB.killServer();
                         }
                         System.exit(0);
@@ -106,8 +108,8 @@ public class Worker extends Thread {
                                         try {
 
                                             for (Database d : XML.getDatabasesInstance().getDatabaseList()) {
-                                                if(d.getDatabaseName().equals(name)){
-                                                    throw new comm.ServerException("Cannot create database "+ name+" it is already present");
+                                                if (d.getDatabaseName().equals(name)) {
+                                                    throw new comm.ServerException("Cannot create database " + name + " it is already present");
                                                 }
                                             }
                                             Database d = new Database();
@@ -133,11 +135,11 @@ public class Worker extends Thread {
                                             String name = tokenizer.nextToken();//Check if table is already present in database
                                             for (Table t : XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList()) {
                                                 if (t.getTableName() != null && t.getTableName().equals(name)) {
-                                                    throw new ServerException("Cannot create table "+name+" it is already present");
+                                                    throw new ServerException("Cannot create table " + name + " it is already present");
                                                 }
                                             }
 
-                                            XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().add(TableBuilder.getTable(name,tokenizer));
+                                            XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().add(TableBuilder.getTable(name, tokenizer));
                                             XML.flush();
 
                                         } catch (FileNotFoundException | ServerException e) {
@@ -145,32 +147,40 @@ public class Worker extends Thread {
                                             throw new comm.ServerException("Error creating table:" + e.getMessage());
                                         }
 
-                                    }break;
-                                    case "index":{//CREATE  INDEX Table.Column
-                                        tokenizer.nextToken();//Table.Column
-                                        StringTokenizer dotTokenizer = new StringTokenizer(tokenizer.nextToken(),".");
-                                        try{
+                                    }
+                                    break;
+                                    case "index": {//CREATE  INDEX Table.Column
+                                        StringTokenizer dotTokenizer = new StringTokenizer(tokenizer.nextToken(), ".");
+                                        try {
                                             String tableName = dotTokenizer.nextToken();
                                             String columnName = dotTokenizer.nextToken();
                                             //check whether we are using a database
-                                            if(!usingDatabase()){
+                                            if (!usingDatabase()) {
                                                 throw new comm.ServerException("Error creating index file, not using any database");
                                             }
-                                            if(!XML.tableExists(tableName,currentlyWorking)){
-                                                throw new comm.ServerException("Error creating index file, table "+ tableName+" does not exist");
+                                            //TODO primary key check
+                                            if (!XML.tableExists(tableName, currentlyWorking)) {
+                                                throw new comm.ServerException("Error creating index file, table " + tableName + " does not exist");
                                             }
-                                            if(!XML.attributeExists(tableName,columnName,currentlyWorking)){
-                                                throw new comm.ServerException("Error creating index file, column "+columnName+" does not existr");
+                                            if (!XML.attributeExists(tableName, columnName, currentlyWorking)) {
+                                                throw new comm.ServerException("Error creating index file, column " + columnName + " does not existr");
                                             }
                                             //check whether column is unique, or foreign key, because for these types there already is an index file created automagically
-                                            if(XML.attributeIsUnique(tableName,columnName,currentlyWorking)){
-                                                throw new comm.ServerException("Error creating index file, column "+columnName+" is unique, there already exists an index file for it");
+                                            if (XML.attributeIsUnique(tableName, columnName, currentlyWorking)) {
+                                                throw new comm.ServerException("Error creating index file, column " + columnName + " is unique, there already exists an index file for it");
                                             }
-                                            if(XML.attributeIsForeignKey(tableName,columnName,currentlyWorking)){
-                                                throw new comm.ServerException("Error creating index file, column "+columnName+" is foreign key, there already exists an index file for it");
+                                            if (XML.attributeIsForeignKey(tableName, columnName, currentlyWorking)) {
+                                                throw new comm.ServerException("Error creating index file, column " + columnName + " is foreign key, there already exists an index file for it");
                                             }
-                                            
-                                        }catch (NoSuchElementException ex){
+                                            if (XML.attributeIsPrimaryKey(tableName, columnName, currentlyWorking)) {
+                                                throw new comm.ServerException("Error creating index file, column " + columnName + " is primary key, it cannot be indexed");
+                                            }
+
+                                            Table t = XML.getTable(tableName,currentlyWorking);
+                                            CreateIndex.getInstance().createIndex(t,columnName);
+                                            XML.flush();
+
+                                        } catch (NoSuchElementException ex) {
                                             throw new comm.ServerException("Syntax error in create index");
                                         }
 
@@ -179,21 +189,21 @@ public class Worker extends Thread {
                             }
                             break;
                             case "insert": { //insert into table values ( val1 , val2 , val3 )
-                                String tableName=null;
+                                String tableName = null;
 
-                                try{
+                                try {
                                     tableName = tokenizer.nextToken();//table
                                     tokenizer.nextToken();//values
-                                }catch (Exception e){
+                                } catch (Exception e) {
                                     throw new comm.ServerException("Error inserting into table, syntax error");
                                 }
-                                Table insertTable = XML.getTable(tableName,currentlyWorking);
-                                if(insertTable==null){
-                                    throw new comm.ServerException("Error inserting into table, table "+tableName+" does not exist");
+                                Table insertTable = XML.getTable(tableName, currentlyWorking);
+                                if (insertTable == null) {
+                                    throw new comm.ServerException("Error inserting into table, table " + tableName + " does not exist");
                                 }
                                 try {
                                     InsertQuery.insert(insertTable, tokenizer);
-                                }catch (NoSuchElementException ex){
+                                } catch (NoSuchElementException ex) {
                                     throw new comm.ServerException("You have a syntax error in your insert somewhere");
                                 }
                             }
@@ -241,8 +251,8 @@ public class Worker extends Thread {
                                         int i = 0;
                                         try {
 
-                                            if(!usingDatabase()){
-                                                throw new comm.ServerException("Error dropping table"+name+", not using any database");
+                                            if (!usingDatabase()) {
+                                                throw new comm.ServerException("Error dropping table" + name + ", not using any database");
                                             }
 
                                             for (Table t : XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList()) {
@@ -262,10 +272,10 @@ public class Worker extends Thread {
                                             }
 
                                             Table currentTable = XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().get(i);
-                                            String referencedKey=ConstraintChecker.anyRowIsBeingReferenced(currentTable);
+                                            String referencedKey = ConstraintChecker.anyRowIsBeingReferenced(currentTable);
 
-                                            if(referencedKey!=null){
-                                                throw new comm.ServerException("Cannot drop table , key  "+referencedKey+ "  is being referenced  from another table");
+                                            if (referencedKey != null) {
+                                                throw new comm.ServerException("Cannot drop table , key  " + referencedKey + "  is being referenced  from another table");
                                             }
 
                                             //at this point nothing is being referenced, we're good to go
@@ -310,7 +320,7 @@ public class Worker extends Thread {
 
                                     //If we are already using desired database, do nothing
 
-                                    if(usingDatabase() && XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getDatabaseName().equals(object)){
+                                    if (usingDatabase() && XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getDatabaseName().equals(object)) {
                                         break;
                                     }
 
