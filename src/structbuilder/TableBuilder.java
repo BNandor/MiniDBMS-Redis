@@ -84,6 +84,15 @@ public class TableBuilder {
         Worker.RDB.select(0);
         int table_num = -1;
 
+        for (ForeignKey fk : fks.getForeignKeyList()) {
+            if ((!XML.attributeIsPrimaryKey(fk.getRefTableName(), fk.getRefTableAttributeName(), Worker.currentlyWorking)
+                    //&& !XML.attributeIsUnique(fk.getRefTableName(), fk.getRefTableAttributeName(), Worker.currentlyWorking)
+                    ) ||
+                    XML.attributeIsForeignKey(fk.getRefTableName(), fk.getRefTableAttributeName(), Worker.currentlyWorking)) {
+                throw new comm.ServerException("Error creating table " + name + " , referenced key " + fk.getRefTableName() + "." + fk.getRefTableAttributeName() + " is either not unique,primary key, or it is a foreign key");
+            }
+        }
+        //everything alright, commit index files
         for (int i = 1; i < RedisConnector.num_of_tables; i++) {
             if (Worker.RDB.get(i + "") == null) {
                 Worker.RDB.set(i + "", "taken");
@@ -120,14 +129,6 @@ public class TableBuilder {
         //Loop over foreign key attributes, and create index files
 
         for (ForeignKey fk : fks.getForeignKeyList()) {
-            if ((!XML.attributeIsPrimaryKey(fk.getRefTableName(), fk.getRefTableAttributeName(), Worker.currentlyWorking) &&
-                    !XML.attributeIsUnique(fk.getRefTableName(), fk.getRefTableAttributeName(), Worker.currentlyWorking)) ||
-                    XML.attributeIsForeignKey(fk.getRefTableName(), fk.getRefTableAttributeName(), Worker.currentlyWorking)) {
-                throw new comm.ServerException("Error creating table " + name + " , referenced key " + fk.getRefTableName() + "." + fk.getRefTableAttributeName() + " is either not unique,primary key, or it is a foreign key");
-            }
-        }
-
-        for (ForeignKey fk : fks.getForeignKeyList()) {
             set = false;
             for (int i = 1; i < RedisConnector.num_of_tables; i++) {
                 if (Worker.RDB.get(i + "") == null) {
@@ -137,7 +138,7 @@ public class TableBuilder {
                     break;
                 }
             }
-            //TODO, if no slot left, implement rollback of created table(get rid of junk index files)
+            //TODO, if no slot left, implement rollback of created table(get rid of junk index files)maybe count remaining free slots
             if (!set) {
                 throw new comm.ServerException("Error creating table, no free slot left in database, increase slot size in the conf file please");
             }

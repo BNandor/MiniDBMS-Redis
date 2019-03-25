@@ -161,6 +161,22 @@ public class XML {
         }
         return false;
     }
+
+    public static  boolean hasIndex(String tableName, String attributeName,int dbindex){
+        try {
+            for (Table t : getDatabasesInstance().getDatabaseList().get(dbindex).getTables().getTableList()) {
+                if (t.getTableName() != null && t.getTableName().equals(tableName)) {
+                    for(IndexFile indexFile:t.getIndexFiles().getIndexFiles()){
+                        if(indexFile.getName().equals(attributeName))return true;
+                    }
+                }
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     public static void writeDatabasesInstance(Databases db) throws IOException {
         System.out.println("XML: writing database to file" + Worker.path_to_work + "/" + databasesName);
         XmlMapper xmlMapper = new XmlMapper();

@@ -83,6 +83,9 @@ public class RedisConnector {//Lifecycle: start thread, create connection, {inse
     public void addToSet(String key, String value){
         j.sadd(key,value);
     }
+    public void removeFromSet(String key, String value){
+        j.srem(key,value);
+    }
 
     public void set(String key,String value){
         j.set(key,value);

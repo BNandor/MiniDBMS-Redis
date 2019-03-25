@@ -3,6 +3,7 @@ package comm;
 import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
 import persistence.RedisConnector;
 import persistence.XML;
+import queries.DeleteQuery;
 import queries.InsertQuery;
 import queries.misc.ConstraintChecker;
 import queries.misc.CreateIndex;
@@ -100,6 +101,26 @@ public class Worker extends Thread {
 
                         String method = tokenizer.nextToken(), object = tokenizer.nextToken();
                         switch (method.toLowerCase()) {
+
+                            case "delete":{
+                                try {
+                                    if (!usingDatabase()) {
+                                        throw new comm.ServerException("Please USE a database");
+                                    }
+                                    String tableName = tokenizer.nextToken();//Table
+
+                                    if(!XML.tableExists(tableName,currentlyWorking)){
+                                        throw new comm.ServerException("Error: table "+tableName+" does not exist int database");
+                                    }
+
+                                    //TODO implement delete from table //this means everything
+                                    String primaryKeyValue = query.split("=")[1];
+                                    Table t = XML.getTable(tableName,currentlyWorking);
+                                    DeleteQuery.getInstance().delete(t,primaryKeyValue);
+                                }catch(NoSuchElementException |IndexOutOfBoundsException ex){
+                                    throw new comm.ServerException("Error deleting row(s), syntax error");
+                                }
+                            }break;
                             case "create": {
                                 switch (object.toLowerCase()) {
                                     case "database": {
@@ -146,7 +167,6 @@ public class Worker extends Thread {
                                             e.printStackTrace();
                                             throw new comm.ServerException("Error creating table:" + e.getMessage());
                                         }
-
                                     }
                                     break;
                                     case "index": {//CREATE  INDEX Table.Column

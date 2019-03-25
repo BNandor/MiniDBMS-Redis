@@ -3,6 +3,7 @@ package queries.misc;
 import comm.ServerException;
 import comm.Worker;
 import persistence.RedisConnector;
+import persistence.XML;
 import struct.IndexFile;
 import struct.Table;
 
@@ -17,6 +18,10 @@ public class CreateIndex {
     public void createIndex(Table t, String attribute) throws comm.ServerException {
 
         Worker.RDB.select(0);
+
+        if(XML.hasIndex(t.getTableName(),attribute,Worker.currentlyWorking)){
+            throw new comm.ServerException("Error creating index, it is already present");
+        }
 
         boolean set=false;
 
