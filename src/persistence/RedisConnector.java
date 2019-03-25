@@ -120,7 +120,6 @@ public class RedisConnector {//Lifecycle: start thread, create connection, {inse
         return j.keys("*");
     }
 
-
     @Override
     protected void finalize() throws Throwable {
         super.finalize();

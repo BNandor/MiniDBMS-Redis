@@ -158,7 +158,6 @@ public class Worker extends Thread {
                                             if (!usingDatabase()) {
                                                 throw new comm.ServerException("Error creating index file, not using any database");
                                             }
-                                            //TODO primary key check
                                             if (!XML.tableExists(tableName, currentlyWorking)) {
                                                 throw new comm.ServerException("Error creating index file, table " + tableName + " does not exist");
                                             }
@@ -187,6 +186,7 @@ public class Worker extends Thread {
                                     }
                                 }
                             }
+
                             break;
                             case "insert": { //insert into table values ( val1 , val2 , val3 )
                                 String tableName = null;
@@ -241,7 +241,6 @@ public class Worker extends Thread {
                                             DatabaseBuilder.deleteDatabase(name);
                                         } catch (FileNotFoundException e) {
                                             e.printStackTrace();
-
                                         }
                                     }
                                     break;
@@ -279,7 +278,6 @@ public class Worker extends Thread {
                                             }
 
                                             //at this point nothing is being referenced, we're good to go
-                                            //TODO Decrement keys that are being referenced by this table
                                             ConstraintChecker.decrementReferencedColumns(currentTable);
 
                                             RDB.select(currentTable.getSlotNumber());

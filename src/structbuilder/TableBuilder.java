@@ -125,7 +125,9 @@ public class TableBuilder {
                     XML.attributeIsForeignKey(fk.getRefTableName(), fk.getRefTableAttributeName(), Worker.currentlyWorking)) {
                 throw new comm.ServerException("Error creating table " + name + " , referenced key " + fk.getRefTableName() + "." + fk.getRefTableAttributeName() + " is either not unique,primary key, or it is a foreign key");
             }
+        }
 
+        for (ForeignKey fk : fks.getForeignKeyList()) {
             set = false;
             for (int i = 1; i < RedisConnector.num_of_tables; i++) {
                 if (Worker.RDB.get(i + "") == null) {
@@ -135,6 +137,7 @@ public class TableBuilder {
                     break;
                 }
             }
+            //TODO, if no slot left, implement rollback of created table(get rid of junk index files)
             if (!set) {
                 throw new comm.ServerException("Error creating table, no free slot left in database, increase slot size in the conf file please");
             }
