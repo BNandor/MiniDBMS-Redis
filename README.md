@@ -11,10 +11,13 @@ using Redis as a key value store.
 
 > USE DATABASE
 
-### Working on
 > INSERT INTO TABLE
 
 > DELETE FROM TABLE
+
+### Working on
+
+> CREATE INDEX FILE
 
 ### Queries to come
 > SELECT +  JOIN
