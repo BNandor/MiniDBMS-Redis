@@ -16,7 +16,17 @@ public class Main {
         Worker worker = new Worker();
         Server server = new Server(1695,worker);
         server.start();
+        Client.getClient().write("Use Tmp"+"\n");
 
+//        for(int i=0;i<10000;i++){
+//            Client.getClient().write("insert into one values ( "+i+" , "+" test )"+"\n");
+//            System.out.println(Client.getClient().readLine());
+//        }
+//
+//        for(int i=0;i<10000;i++){
+//            Client.getClient().write("delete from one where id="+i+"\n");
+//            System.out.println(Client.getClient().readLine());
+//        }
     }
 }
 

@@ -119,7 +119,7 @@ public class InsertQuery {
         Worker.RDB.setColumn(primaryKey, Worker.referenceCountName, 0 + "");
         //save all of the changes
 
-        Worker.RDB.save();
+        //Worker.RDB.save();
     }
 
     private static class UniqueEntry {

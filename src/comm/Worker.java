@@ -70,7 +70,10 @@ public class Worker extends Thread {
         while (true) {
             while (jobs.size() == 0) {
                 try {
-                    Thread.sleep(500);
+                    if(usingDatabase()) {
+                        RDB.save();
+                    }
+                    Thread.sleep(1500);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }

@@ -65,20 +65,19 @@ public class DeleteQuery {
                 }
             }
         }
+        if (table.getIndexFiles() !=null) {
+            for (IndexFile index : table.getIndexFiles().getIndexFiles()) {
+                if (!XML.attributeIsForeignKey(table.getTableName(), index.getName(), Worker.currentlyWorking) && !XML.attributeIsUnique(table.getTableName(), index.getName(), Worker.currentlyWorking)) {
+                    //ordinary index file
+                    Worker.RDB.select(table.getSlotNumber());
+                    String val = Worker.RDB.getColumn(primaryKeyValue, index.getName());
 
-        for(IndexFile index:table.getIndexFiles().getIndexFiles()){
-            if(!XML.attributeIsForeignKey(table.getTableName(),index.getName(),Worker.currentlyWorking) && !XML.attributeIsUnique(table.getTableName(),index.getName(),Worker.currentlyWorking)){
-                //ordinary index file
-                Worker.RDB.select(table.getSlotNumber());
-                String val = Worker.RDB.getColumn(primaryKeyValue,index.getName());
-
-                Worker.RDB.select(index.getIndexFileName());
-                Worker.RDB.removeFromSet(val,primaryKeyValue);
+                    Worker.RDB.select(index.getIndexFileName());
+                    Worker.RDB.removeFromSet(val, primaryKeyValue);
+                }
             }
         }
-
         Worker.RDB.select(table.getSlotNumber());
         Worker.RDB.delkey(primaryKeyValue);
-        Worker.RDB.save();
     }
 }
