@@ -23,3 +23,12 @@ using Redis as a key value store.
 > SELECT +  JOIN
 
 > SELECT +  GROUP BY
+
+### Main window
+![Window](https://raw.githubusercontent.com/BNandor/MiniDBMS-Redis/master/img/mainwindow.png)
+
+### Add table
+![Window](https://raw.githubusercontent.com/BNandor/MiniDBMS-Redis/master/img/addtable.png)
+
+### Insertion
+![Window](https://raw.githubusercontent.com/BNandor/MiniDBMS-Redis/master/img/insert.png)
