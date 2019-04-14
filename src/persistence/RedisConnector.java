@@ -3,6 +3,7 @@ package persistence;
 import com.sun.corba.se.spi.orbutil.threadpool.Work;
 import comm.Worker;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.ScanResult;
 
 import javax.naming.OperationNotSupportedException;
 import java.io.BufferedReader;
@@ -79,7 +80,9 @@ public class RedisConnector {//Lifecycle: start thread, create connection, {inse
     }
 
 
-
+    public ScanResult<String> scan(String cursor){
+        return j.scan(cursor);
+    }
     public void addToSet(String key, String value){
         j.sadd(key,value);
     }
