@@ -125,6 +125,7 @@ public class RedisConnector {//Lifecycle: start thread, create connection, {inse
     public Set<String> getAllKeys(){
         return j.keys("*");
     }
+    public long getKeyCount(){return j.dbSize();}
 
     @Override
     protected void finalize() throws Throwable {
