@@ -5,6 +5,7 @@ import persistence.RedisConnector;
 import persistence.XML;
 import queries.DeleteQuery;
 import queries.InsertQuery;
+import queries.SelectQuery;
 import queries.misc.ConstraintChecker;
 import queries.misc.CreateIndex;
 import struct.Database;
@@ -104,7 +105,13 @@ public class Worker extends Thread {
 
                         String method = tokenizer.nextToken(), object = tokenizer.nextToken();
                         switch (method.toLowerCase()) {
-
+                            case "select":{
+                                if (!usingDatabase()) {
+                                    throw new comm.ServerException("Please USE a database");
+                                }
+                                SelectQuery selectQuery =  new SelectQuery(query,messageSender);
+                                System.out.println(selectQuery.select(selectQuery.buildQuery()));
+                            }break;
                             case "delete":{
                                 try {
                                     if (!usingDatabase()) {
@@ -153,20 +160,20 @@ public class Worker extends Thread {
                                         try {
 
                                             if (!usingDatabase()) {
-                                                throw new ServerException("Please USE a database");
+                                                throw new comm.ServerException("Please USE a database");
                                             }
 
                                             String name = tokenizer.nextToken();//Check if table is already present in database
                                             for (Table t : XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList()) {
                                                 if (t.getTableName() != null && t.getTableName().equals(name)) {
-                                                    throw new ServerException("Cannot create table " + name + " it is already present");
+                                                    throw new comm.ServerException("Cannot create table " + name + " it is already present");
                                                 }
                                             }
 
                                             XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().add(TableBuilder.getTable(name, tokenizer));
                                             XML.flush();
 
-                                        } catch (FileNotFoundException | ServerException e) {
+                                        } catch (FileNotFoundException | comm.ServerException e) {
                                             e.printStackTrace();
                                             throw new comm.ServerException("Error creating table:" + e.getMessage());
                                         }

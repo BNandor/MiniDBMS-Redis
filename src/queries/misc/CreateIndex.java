@@ -53,8 +53,8 @@ public class CreateIndex {
         String cursor = "0";
         ScanResult<String> result= Worker.RDB.scan(cursor);// scan can return an element multiple times,
                             // but since we are saving to a set, duplicates don't matter
-        System.out.println("written key num"+Worker.RDB.getKeyCount());
         int sum =0;
+
         do{
             //result has a set of keys on which we can iterate
             List<String> attributeValues=new ArrayList<>();//get attribute values at current keys

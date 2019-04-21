@@ -77,6 +77,7 @@ public class XML {
             }
 
             for (Table t : getDatabasesInstance().getDatabaseList().get(dbindex).getTables().getTableList()) {
+
                 if (t.getTableName() != null && t.getTableName().equals(name)) {
                     return true;
                 }
