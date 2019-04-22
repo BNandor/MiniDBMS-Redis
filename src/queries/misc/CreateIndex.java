@@ -48,19 +48,15 @@ public class CreateIndex {
     }
 
     private void fillCreatedIndex(Table t, String attribute, int indexSlot) {
-        //To eliminate incosistencies (late savings)
         Worker.RDB.select(t.getSlotNumber());
         String cursor = "0";
         ScanResult<String> result= Worker.RDB.scan(cursor);// scan can return an element multiple times,
                             // but since we are saving to a set, duplicates don't matter
-        int sum =0;
-
         do{
             //result has a set of keys on which we can iterate
             List<String> attributeValues=new ArrayList<>();//get attribute values at current keys
             for(String key:result.getResult()){
                 attributeValues.add(Worker.RDB.getColumn(key,attribute));
-                ++sum;
             }
 
             Worker.RDB.select(indexSlot);
@@ -76,7 +72,6 @@ public class CreateIndex {
         List<String> attributeValues=new ArrayList<>();//get attribute values at current keys
         for(String key:result.getResult()){
             attributeValues.add(Worker.RDB.getColumn(key,attribute));
-            ++sum;
         }
 
         Worker.RDB.select(indexSlot);
@@ -85,7 +80,6 @@ public class CreateIndex {
             Worker.RDB.addToSet(attributeValues.get(i),key);
             i++;
         }
-        System.out.println("SUM"+sum);
     }
 
     public static CreateIndex getInstance() {

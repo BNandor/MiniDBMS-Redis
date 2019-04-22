@@ -83,6 +83,9 @@ public class RedisConnector {//Lifecycle: start thread, create connection, {inse
     public ScanResult<String> scan(String cursor){
         return j.scan(cursor);
     }
+    public ScanResult<String> setscan(String key,String cursor){
+        return j.sscan(key,cursor);
+    }
     public void addToSet(String key, String value){
         j.sadd(key,value);
     }

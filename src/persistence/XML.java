@@ -167,9 +167,12 @@ public class XML {
         try {
             for (Table t : getDatabasesInstance().getDatabaseList().get(dbindex).getTables().getTableList()) {
                 if (t.getTableName() != null && t.getTableName().equals(tableName)) {
-                    for(IndexFile indexFile:t.getIndexFiles().getIndexFiles()){
-                        if(indexFile.getName().equals(attributeName))return true;
+                    if(t.getIndexFiles()!=null){
+                        for(IndexFile indexFile:t.getIndexFiles().getIndexFiles()){
+                            if(indexFile.getName().equals(attributeName))return true;
+                        }
                     }
+                    break;
                 }
             }
         } catch (FileNotFoundException e) {

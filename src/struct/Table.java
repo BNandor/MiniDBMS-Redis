@@ -80,6 +80,8 @@ public class Table {
     }
 
     public ForeignKeys getForeignKeys() {
+        if(foreignKeys == null)
+            foreignKeys = new ForeignKeys();
         return foreignKeys;
     }
 
@@ -88,6 +90,8 @@ public class Table {
     }
 
     public UniqueAttributes getUniqeAttributes() {
+        if(uniqueAttributes == null)
+            uniqueAttributes = new UniqueAttributes();
         return uniqueAttributes;
     }
 
@@ -96,7 +100,9 @@ public class Table {
     }
 
     public IndexFiles getIndexFiles() {
-        return indexFiles;
+        if (indexFiles == null)
+            indexFiles = new IndexFiles();
+            return indexFiles;
     }
 
     public void setIndexFiles(IndexFiles indexFiles) {
