@@ -131,6 +131,9 @@ public class SelectQuery {
                 query.constraints.add(new Pair<>(column, value));
             }
         }
+        if(!XML.tableExists(query.tableName,Worker.currentlyWorking)){
+            throw new comm.ServerException("Error: table "+query.tableName+" does not exist");
+        }
 
         if (query.selectedColumns.size() == 1 && query.selectedColumns.get(0).equals("*")) {//handling wildcard
             query.selectedColumns.clear();
@@ -351,6 +354,7 @@ public class SelectQuery {
                             }
                         }
                     }
+                    Worker.RDB.select(selectedTable.getSlotNumber());
                     for (String key : pres) {
                         if (thisTablePKSelectable(query, key)) {
                             result.add(key);
