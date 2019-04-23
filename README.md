@@ -15,12 +15,14 @@ using Redis as a key value store.
 
 > DELETE FROM TABLE
 
-### Working on
-
 > CREATE INDEX FILE
 
-### Queries to come
+> Simple SELECT 
+### Working on
+
 > SELECT +  JOIN
+
+### Queries to come
 
 > SELECT +  GROUP BY
 
