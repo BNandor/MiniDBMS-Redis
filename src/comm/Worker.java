@@ -112,7 +112,7 @@ public class Worker extends Thread {
                                     throw new comm.ServerException("Please USE a database");
                                 }
                                 SelectQuery selectQuery =  new SelectQuery(query,messageSender);
-                                System.out.println(selectQuery.select(selectQuery.buildQuery()));
+                                selectQuery.writeResult(selectQuery.select(selectQuery.buildQuery()));
                             }break;
                             case "delete":{
                                 try {

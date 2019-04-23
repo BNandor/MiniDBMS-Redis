@@ -1,5 +1,6 @@
 package queries;
 
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import comm.ServerException;
 import comm.Worker;
 import javafx.util.Pair;
@@ -7,16 +8,21 @@ import persistence.XML;
 import queries.misc.selectpipeline.FTSIDProvider;
 import queries.misc.selectpipeline.IDSource;
 import queries.misc.selectpipeline.IndexIDProvider;
+import queries.misc.selectresultprotocol.Header;
+import queries.misc.selectresultprotocol.Page;
+import queries.misc.selectresultprotocol.Row;
+import struct.Attribute;
 import struct.IndexFile;
 import struct.Table;
 import struct.Unique;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class SelectQuery {
-
+    private static final int numberOfRowsInPage=500;
     class Query {
         public ArrayList<String> selectedColumns;
         public ArrayList<Pair<String, String>> constraints;
@@ -89,12 +95,26 @@ public class SelectQuery {
             }
         }
 
+        if(query.selectedColumns.size() == 1 && query.selectedColumns.get(0).equals("*")){//handling wildcard
+            query.selectedColumns.clear();
+            for (Attribute attribute:XML.getTable(query.tableName,Worker.currentlyWorking).getTableStructure().getAttributeList()){
+                query.selectedColumns.add(attribute.getName());
+            }
+        }
+
+        for (String column:query.selectedColumns){
+            if(!XML.attributeExists(query.tableName,column,Worker.currentlyWorking)){
+                throw new comm.ServerException("Error: column "+column+" does not exist now, does it ? ");
+            }
+        }
 
         return query;
     }
 
     class PartialResult { //encapsulates a selection from one table only
+
         private Query query;
+        private Table selectedTable;
         private Set<Integer> resultKeys;
 
         public PartialResult(Query query) {
@@ -109,6 +129,56 @@ public class SelectQuery {
         @Override
         public String toString() {
             return resultKeys + "";
+        }
+    }
+
+    public void writeResult(PartialResult partialResult) throws ServerException {
+        messageSender.write("READY\n");
+        messageSender.flush();
+
+        Header header = new Header();
+        header.setColumnCount(partialResult.query.selectedColumns.size());
+        header.setColumnNames(partialResult.query.selectedColumns);
+        int pagenumber=(partialResult.resultKeys.size()%numberOfRowsInPage == 0)?
+                partialResult.resultKeys.size()/numberOfRowsInPage
+                :
+                partialResult.resultKeys.size()/numberOfRowsInPage+1;
+        header.setPageNumber(pagenumber);
+        header.setRowCount(partialResult.resultKeys.size());
+        XmlMapper xmlMapper = new XmlMapper();
+        try {
+            messageSender.write(xmlMapper.writeValueAsString(header)+"\n");
+            messageSender.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw  new comm.ServerException("Error writing header to stream");
+        }
+
+        Iterator<Integer> idIterator = partialResult.resultKeys.iterator();
+        Worker.RDB.select(partialResult.selectedTable.getSlotNumber());
+
+        for (int i=0;i<pagenumber;i++){
+            Page page = new Page();
+            page.setPageNumber(i);
+            for (int j=0;j<numberOfRowsInPage&&idIterator.hasNext();j++){
+                int currentID = idIterator.next();
+                Row row =new Row();
+                for(String column:partialResult.query.selectedColumns){
+                    if(column.equals(partialResult.selectedTable.getKey().getName())){
+                        row.getValues().add(String.valueOf(currentID));
+                    }else {
+                        row.getValues().add(Worker.RDB.getColumn(currentID + "", column));
+                    }
+                }
+                page.getRows().add(row);
+            }
+            try {
+                messageSender.write(xmlMapper.writeValueAsString(page)+"\n");
+            } catch (IOException e) {
+                e.printStackTrace();
+                throw  new comm.ServerException("Error writing page to stream");
+            }
+            messageSender.flush();
         }
     }
 
@@ -161,6 +231,7 @@ public class SelectQuery {
             throw new comm.ServerException("Error in select: table " + query.tableName + " does not exist in database " + Worker.currentlyWorking);
         }
         Table selectedTable = XML.getTable(query.tableName, Worker.currentlyWorking);
+        result.selectedTable = selectedTable;
         for (Pair<String, String> p : query.constraints) {
             if (!XML.attributeExists(query.tableName, p.getKey(), Worker.currentlyWorking)) {
                 throw new comm.ServerException("Error in select: attribute " + p.getKey() + " does not exist");
@@ -206,7 +277,7 @@ public class SelectQuery {
         if (indexedColumns.size() == 0) {//in this case, there are no indexed columns, initiate FTS
             IDSource ids = new FTSIDProvider(selectedTable.getSlotNumber());
             while (ids.hasNext()) {
-                result.resultKeys.addAll(ids.readNext().stream().filter((pk) -> thisTablePKSelectable(query, pk)).map(pk->Integer.parseInt(pk)).collect(Collectors.toList()));
+                result.resultKeys.addAll(ids.readNext().stream().filter((pk) -> thisTablePKSelectable(query, pk)).map(pk -> Integer.parseInt(pk)).collect(Collectors.toList()));
             }
         } else {
 
