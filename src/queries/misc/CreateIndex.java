@@ -44,7 +44,6 @@ public class CreateIndex {
             throw new comm.ServerException("Error creating index file, no free slot left in database");
         }
         fillCreatedIndex(t, attribute, i);
-        Worker.RDB.save();
     }
 
     private void fillCreatedIndex(Table t, String attribute, int indexSlot) {

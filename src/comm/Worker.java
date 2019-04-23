@@ -67,14 +67,16 @@ public class Worker extends Thread {
     @Override
     public void run() {
         super.run();
-
+        boolean dbchanged=false;
         while (true) {
             while (jobs.size() == 0) {
                 try {
-                    if(usingDatabase()) {
+                    if(usingDatabase() && dbchanged) {
                         RDB.save();
+                        dbchanged=false;
+                        System.out.println("REDIS SAVED");
                     }
-                    Thread.sleep(1500);
+                    Thread.sleep(2500);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -93,7 +95,7 @@ public class Worker extends Thread {
                             RDB.killServer();
                         }
                         System.exit(0);
-                    }
+                    }break;
                     case Client.getDatabasesQuery: {
                         XML.flush();
                         messageSender.write(XML.readXML() + "\n");
@@ -127,6 +129,7 @@ public class Worker extends Thread {
                                     String primaryKeyValue = query.split("=")[1];
                                     Table t = XML.getTable(tableName,currentlyWorking);
                                     DeleteQuery.getInstance().delete(t,primaryKeyValue);
+                                    dbchanged=true;
                                 }catch(NoSuchElementException |IndexOutOfBoundsException ex){
                                     throw new comm.ServerException("Error deleting row(s), syntax error");
                                 }
@@ -148,6 +151,7 @@ public class Worker extends Thread {
                                             XML.getDatabasesInstance().getDatabaseList().add(d);
                                             XML.flush();
                                             DatabaseBuilder.createDatabase(name);
+                                            dbchanged=true;
                                         } catch (FileNotFoundException e) {
                                             e.printStackTrace();
                                             throw new comm.ServerException("Cannot find xml file:" + e.getMessage());
@@ -172,7 +176,7 @@ public class Worker extends Thread {
 
                                             XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().add(TableBuilder.getTable(name, tokenizer));
                                             XML.flush();
-
+                                            dbchanged=true;
                                         } catch (FileNotFoundException | comm.ServerException e) {
                                             e.printStackTrace();
                                             throw new comm.ServerException("Error creating table:" + e.getMessage());
@@ -208,7 +212,7 @@ public class Worker extends Thread {
                                             Table t = XML.getTable(tableName,currentlyWorking);
                                             CreateIndex.getInstance().createIndex(t,columnName);
                                             XML.flush();
-
+                                            dbchanged=true;
                                         } catch (NoSuchElementException ex) {
                                             throw new comm.ServerException("Syntax error in create index");
                                         }
@@ -233,6 +237,7 @@ public class Worker extends Thread {
                                 }
                                 try {
                                     InsertQuery.insert(insertTable, tokenizer);
+                                    dbchanged=true;
                                 } catch (NoSuchElementException ex) {
                                     throw new comm.ServerException("You have a syntax error in your insert somewhere");
                                 }
@@ -330,7 +335,7 @@ public class Worker extends Thread {
 
                                             XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().remove(i);
                                             XML.flush();
-
+                                            dbchanged=true;
                                         } catch (FileNotFoundException e) {
                                             e.printStackTrace();
                                             throw new comm.ServerException(e.getMessage());

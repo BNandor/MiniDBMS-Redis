@@ -14,6 +14,9 @@ import java.util.Set;
 public class RedisConnector {//Lifecycle: start thread, create connection, {insert, get, select}, kill
     public static final int num_of_tables=30;
     public static final String path_to_redis_executable="redis-5.0.3/src/redis-server";
+    public static final int connectionTimeout = 5000;
+    public static final int readTimeout = 5000;
+
     private Jedis j;
     private Process redisProcess;
     public RedisConnector() {
@@ -73,10 +76,16 @@ public class RedisConnector {//Lifecycle: start thread, create connection, {inse
         j.select(slot);
     }
     public void save(){
-        j.save();
+        if(j.isConnected()) {
+            j.save();
+        }
+        //j.bgsave();
+    }
+    public boolean connected(){
+        return j.isConnected();
     }
     public  void connect(){
-        j = new Jedis("localhost",6379);
+        j = new Jedis("localhost",6379,connectionTimeout,readTimeout);
     }
 
 

@@ -93,10 +93,12 @@ public class SelectQuery {
         return query;
     }
 
-    class PartialResult {
+    class PartialResult { //encapsulates a selection from one table only
+        private Query query;
         private Set<Integer> resultKeys;
 
-        public PartialResult() {
+        public PartialResult(Query query) {
+            this.query = query;
             resultKeys = new TreeSet<>();
         }
 
@@ -128,7 +130,7 @@ public class SelectQuery {
         return true;
     }
 
-    private int getUniqueSlot(Table selectedTable, String uniqueAttributeName) throws ServerException {
+    private int getUniqueSlot(Table selectedTable, String uniqueAttributeName) throws comm.ServerException {
         for (Unique unique : selectedTable.getUniqeAttributes().getUniqueList()) {
             if (unique.getName().equals(uniqueAttributeName)) {
                 for (IndexFile index : selectedTable.getIndexFiles().getIndexFiles()) {
@@ -151,15 +153,14 @@ public class SelectQuery {
         throw new comm.ServerException("Internal error, db is in inconsistent state regarding index slots");
     }
 
-    public PartialResult select(Query query) throws ServerException {
+    public PartialResult select(Query query) throws comm.ServerException {
         System.out.println(query);
-        PartialResult result = new PartialResult();
+        PartialResult result = new PartialResult(query);
 
         if (!XML.tableExists(query.tableName, Worker.currentlyWorking)) {
             throw new comm.ServerException("Error in select: table " + query.tableName + " does not exist in database " + Worker.currentlyWorking);
         }
         Table selectedTable = XML.getTable(query.tableName, Worker.currentlyWorking);
-
         for (Pair<String, String> p : query.constraints) {
             if (!XML.attributeExists(query.tableName, p.getKey(), Worker.currentlyWorking)) {
                 throw new comm.ServerException("Error in select: attribute " + p.getKey() + " does not exist");
