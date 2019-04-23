@@ -19,18 +19,24 @@ import struct.Unique;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class SelectQuery {
-    private static final int numberOfRowsInPage=500;
+    private static final int numberOfRowsInPage = 500;
+
     class Query {
         public ArrayList<String> selectedColumns;
         public ArrayList<Pair<String, String>> constraints;
+        public ArrayList<String> operators;
+
         public String tableName;
 
         public Query() {
             selectedColumns = new ArrayList<>();
             constraints = new ArrayList<>();
+            operators = new ArrayList<>();
         }
 
         @Override
@@ -79,9 +85,40 @@ public class SelectQuery {
 
             for (int i = 0; i < constraints.length; i++) {
                 String constraint = constraints[i];
-                String[] constraintelements = constraint.split("=");
-                String column = constraintelements[0].trim();
-                String value = constraintelements[1].trim();
+                String equalityPattern = " *([A-Za-z0-9]+) *= *(.+) *";
+                String biggerPattern = " *([A-Za-z0-9]+) *> *(.+) *";
+                String smallerPattern = " *([A-Za-z0-9]+) *< *(.+) *";
+
+                Pattern pattern = Pattern.compile(equalityPattern);
+                Matcher matcher = pattern.matcher(constraint);
+
+                String column=null;
+                String value=null;
+
+                if (matcher.find()) {
+                    column = matcher.group(1).trim();
+                    value = matcher.group(2).trim();
+                    query.operators.add("=");
+                }else {
+                    pattern = Pattern.compile(biggerPattern);
+                    matcher = pattern.matcher(constraint);
+
+                    if (matcher.find()) {
+                        column = matcher.group(1).trim();
+                        value = matcher.group(2).trim();
+                        query.operators.add(">");
+                    } else {
+                        pattern = Pattern.compile(smallerPattern);
+                        matcher = pattern.matcher(constraint);
+                        if (matcher.find()) {
+                            column = matcher.group(1).trim();
+                            value = matcher.group(2).trim();
+                            query.operators.add("<");
+                        } else {
+                            throw new comm.ServerException("Error building query: invalid opertaor in "+constraint);
+                        }
+                    }
+                }
 
                 if (value.charAt(0) == '\'') {
                     value = value.substring(1);
@@ -95,16 +132,16 @@ public class SelectQuery {
             }
         }
 
-        if(query.selectedColumns.size() == 1 && query.selectedColumns.get(0).equals("*")){//handling wildcard
+        if (query.selectedColumns.size() == 1 && query.selectedColumns.get(0).equals("*")) {//handling wildcard
             query.selectedColumns.clear();
-            for (Attribute attribute:XML.getTable(query.tableName,Worker.currentlyWorking).getTableStructure().getAttributeList()){
+            for (Attribute attribute : XML.getTable(query.tableName, Worker.currentlyWorking).getTableStructure().getAttributeList()) {
                 query.selectedColumns.add(attribute.getName());
             }
         }
 
-        for (String column:query.selectedColumns){
-            if(!XML.attributeExists(query.tableName,column,Worker.currentlyWorking)){
-                throw new comm.ServerException("Error: column "+column+" does not exist now, does it ? ");
+        for (String column : query.selectedColumns) {
+            if (!XML.attributeExists(query.tableName, column, Worker.currentlyWorking)) {
+                throw new comm.ServerException("Error: column " + column + " does not exist now, does it ? ");
             }
         }
 
@@ -139,62 +176,97 @@ public class SelectQuery {
         Header header = new Header();
         header.setColumnCount(partialResult.query.selectedColumns.size());
         header.setColumnNames(partialResult.query.selectedColumns);
-        int pagenumber=(partialResult.resultKeys.size()%numberOfRowsInPage == 0)?
-                partialResult.resultKeys.size()/numberOfRowsInPage
+        int pagenumber = (partialResult.resultKeys.size() % numberOfRowsInPage == 0) ?
+                partialResult.resultKeys.size() / numberOfRowsInPage
                 :
-                partialResult.resultKeys.size()/numberOfRowsInPage+1;
+                partialResult.resultKeys.size() / numberOfRowsInPage + 1;
         header.setPageNumber(pagenumber);
         header.setRowCount(partialResult.resultKeys.size());
         XmlMapper xmlMapper = new XmlMapper();
         try {
-            messageSender.write(xmlMapper.writeValueAsString(header)+"\n");
+            messageSender.write(xmlMapper.writeValueAsString(header) + "\n");
             messageSender.flush();
         } catch (IOException e) {
             e.printStackTrace();
-            throw  new comm.ServerException("Error writing header to stream");
+            throw new comm.ServerException("Error writing header to stream");
         }
 
         Iterator<Integer> idIterator = partialResult.resultKeys.iterator();
         Worker.RDB.select(partialResult.selectedTable.getSlotNumber());
 
-        for (int i=0;i<pagenumber;i++){
+        for (int i = 0; i < pagenumber; i++) {
             Page page = new Page();
             page.setPageNumber(i);
-            for (int j=0;j<numberOfRowsInPage&&idIterator.hasNext();j++){
+            for (int j = 0; j < numberOfRowsInPage && idIterator.hasNext(); j++) {
                 int currentID = idIterator.next();
-                Row row =new Row();
-                for(String column:partialResult.query.selectedColumns){
-                    if(column.equals(partialResult.selectedTable.getKey().getName())){
+                Row row = new Row();
+                for (String column : partialResult.query.selectedColumns) {
+                    if (column.equals(partialResult.selectedTable.getKey().getName())) {
                         row.getValues().add(String.valueOf(currentID));
-                    }else {
+                    } else {
                         row.getValues().add(Worker.RDB.getColumn(currentID + "", column));
                     }
                 }
                 page.getRows().add(row);
             }
             try {
-                messageSender.write(xmlMapper.writeValueAsString(page)+"\n");
+                messageSender.write(xmlMapper.writeValueAsString(page) + "\n");
             } catch (IOException e) {
                 e.printStackTrace();
-                throw  new comm.ServerException("Error writing page to stream");
+                throw new comm.ServerException("Error writing page to stream");
             }
             messageSender.flush();
         }
     }
 
-    private boolean thisTablePKSelectable(Query query, String pk) {
+    private boolean thisTablePKSelectable(Query query, String pk) throws ServerException {
         // TODO optimization: do not check constraints on which we have an index
         if (!Worker.RDB.keyExists(pk)) return false;
+        Iterator<String> operatorIterator = query.operators.iterator();
         for (Pair<String, String> p : query.constraints) {
             String realVal = Worker.RDB.getColumn(pk, p.getKey());
-            if (realVal == null) {//in this case, the constraint must be inflicted on the pk, because we checked the existence of columns
-                if (!pk.equals(p.getValue())) {
-                    return false;
+            try {
+                switch (operatorIterator.next()) {
+                    case "=": {
+                        if (realVal == null) {//in this case, the constraint must be inflicted on the pk, because we checked the existence of columns
+                            if (!pk.equals(p.getValue())) {
+                                return false;
+                            }
+                            continue;
+                        }
+                        if (!realVal.equals(p.getValue())) {
+                            return false;
+                        }
+                    }
+                    break;
+                    case ">": {
+                        if (realVal == null) {//in this case, the constraint must be inflicted on the pk, because we checked the existence of columns
+                            if (!(Integer.parseInt(pk) > Integer.parseInt(p.getValue()))) {
+                                return false;
+                            }
+                            continue;
+                        }
+                        if (!(Integer.parseInt(realVal) > Integer.parseInt(p.getValue()))) {
+                            return false;
+                        }
+                    }
+                    break;
+                    case "<": {
+                        if (realVal == null) {//in this case, the constraint must be inflicted on the pk, because we checked the existence of columns
+                            if (!(Integer.parseInt(pk) < Integer.parseInt(p.getValue()))) {
+                                return false;
+                            }
+                            continue;
+                        }
+                        if (!(Integer.parseInt(realVal) < Integer.parseInt(p.getValue()))) {
+                            return false;
+                        }
+                    }
+                    break;
                 }
-                continue;
-            }
-            if (!realVal.equals(p.getValue())) {
-                return false;
+            }catch (NumberFormatException ex){
+                ex.printStackTrace();
+                throw new comm.ServerException("Error, cannot convert string to int in constraints");
             }
         }
         return true;
@@ -239,24 +311,59 @@ public class SelectQuery {
         }
 
         //everything checks out, let's select
-        for (Pair<String, String> p : query.constraints) {//check for the presence of unique indexes
+        Iterator<String> operatorIterator= query.operators.iterator();
+        for (Pair<String, String> p : query.constraints){//check for the presence of unique indexes
+            String operator = operatorIterator.next();
             if (XML.attributeIsUnique(query.tableName, p.getKey(), Worker.currentlyWorking)) {//we're lucky
                 //we have a maximum of one result
-                Worker.RDB.select(getUniqueSlot(selectedTable, p.getKey()));//select index db
-                String uniquePK = Worker.RDB.get(p.getValue());
-                if (uniquePK == null) {//there is no record with that unique value
+                if(operator.equals("=")) {
+                    Worker.RDB.select(getUniqueSlot(selectedTable, p.getKey()));//select index db
+                    String uniquePK = Worker.RDB.get(p.getValue());
+                    if (uniquePK == null) {//there is no record with that unique value
+                        return result;
+                    }
+                    Worker.RDB.select(selectedTable.getSlotNumber());
+                    if (thisTablePKSelectable(query, uniquePK)) {
+                        result.add(uniquePK);
+                    }
                     return result;
+                }else{
+                    IDSource source = new FTSIDProvider(getUniqueSlot(selectedTable, p.getKey()));
+                    Set<String> pres = new TreeSet<>();//TODO implement streaming here also
+
+                    if(operator.equals(">")) {
+                        while (source.hasNext()) {
+                            for (String uval : source.readNext()) {
+                                if (Integer.parseInt(uval) > Integer.parseInt(p.getValue())) {
+                                    pres.add(Worker.RDB.get(uval));
+                                }
+
+                            }
+                        }
+                    }
+                    else{
+                        while (source.hasNext()) {
+                            for (String uval : source.readNext()) {
+                                if (Integer.parseInt(uval) < Integer.parseInt(p.getValue())) {
+                                    pres.add(Worker.RDB.get(uval));
+                                }
+
+                            }
+                        }
+                    }
+                    for (String key : pres) {
+                        if (thisTablePKSelectable(query, key)) {
+                            result.add(key);
+                        }
+                    }
+                        return result;
                 }
-                Worker.RDB.select(selectedTable.getSlotNumber());
-                if (thisTablePKSelectable(query, uniquePK)) {
-                    result.add(uniquePK);
-                }
-                return result;
             }
         }
-
+        operatorIterator= query.operators.iterator();
         for (Pair<String, String> p : query.constraints) {//check for constraints on primary key
-            if (XML.attributeIsPrimaryKey(query.tableName, p.getKey(), Worker.currentlyWorking)) {//we're lucky
+            String op = operatorIterator.next();
+            if (XML.attributeIsPrimaryKey(query.tableName, p.getKey(), Worker.currentlyWorking) && op.equals("=")) {//we're lucky
                 Worker.RDB.select(selectedTable.getSlotNumber());
                 if (thisTablePKSelectable(query, p.getValue())) {
                     result.add(p.getValue());
@@ -266,35 +373,83 @@ public class SelectQuery {
         }
 
         // at this point, there are no constraints on unique keys,or on primary keys
-        ArrayList<Pair<String, String>> indexedColumns = new ArrayList<>();
-        for (Pair<String, String> p : query.constraints) {
-            if (XML.hasIndex(query.tableName, p.getKey(), Worker.currentlyWorking)) {
-                indexedColumns.add(new Pair<>(p.getKey(), p.getValue()));
 
+        ArrayList<Pair<String, String>> equalityIndexed = new ArrayList<>();
+        ArrayList<Pair<String, String>> biggerIndexed = new ArrayList<>();
+        ArrayList<Pair<String, String>> smallerIndexed = new ArrayList<>();
+        operatorIterator = query.operators.iterator();
+        for (Pair<String, String> p : query.constraints) {
+            String op = operatorIterator.next();
+            if (XML.hasIndex(query.tableName, p.getKey(), Worker.currentlyWorking)) {
+                switch (op) {
+                    case "=":   equalityIndexed.add(new Pair<>(p.getKey(), p.getValue()));break;
+                    case ">":   biggerIndexed.add(new Pair<>(p.getKey(), p.getValue()));break;
+                    case "<":   smallerIndexed.add(new Pair<>(p.getKey(), p.getValue()));break;
+                }
             }
         }
 
-        if (indexedColumns.size() == 0) {//in this case, there are no indexed columns, initiate FTS
+        if (equalityIndexed.size() == 0) {//in this case, there are no indexed columns, initiate FTS
             IDSource ids = new FTSIDProvider(selectedTable.getSlotNumber());
             while (ids.hasNext()) {
-                result.resultKeys.addAll(ids.readNext().stream().filter((pk) -> thisTablePKSelectable(query, pk)).map(pk -> Integer.parseInt(pk)).collect(Collectors.toList()));
+                for(String id:ids.readNext()){
+                    if(thisTablePKSelectable(query, id)){
+                        result.resultKeys.add(Integer.parseInt(id));
+                    }
+                }
             }
         } else {
 
             //set the result of the selection based on the first index file
-            IDSource ids = new IndexIDProvider(getIndexSlot(selectedTable, indexedColumns.get(0).getKey()), indexedColumns.get(0).getValue());
+            IDSource ids = new IndexIDProvider(getIndexSlot(selectedTable, equalityIndexed.get(0).getKey()), equalityIndexed.get(0).getValue());
             Set<String> indexset = new HashSet<>();
+
             while (ids.hasNext()) {
                 indexset.addAll(new ArrayList<>(ids.readNext()));//get everything
             }
 
-            for (int i = 1; i < indexedColumns.size(); i++) {//for every other indexed Column, perform intersection
+            for (int i = 1; i < equalityIndexed.size(); i++) {//for every other indexed Column, perform intersection
                 Set<String> partialindexset = new TreeSet<>();
-                ids = new IndexIDProvider(getIndexSlot(selectedTable, indexedColumns.get(i).getKey()), indexedColumns.get(i).getValue());
+                ids = new IndexIDProvider(getIndexSlot(selectedTable, equalityIndexed.get(i).getKey()), equalityIndexed.get(i).getValue());
                 while (ids.hasNext()) {
                     partialindexset.addAll(new ArrayList<>(ids.readNext()));
                 }
                 indexset.retainAll(partialindexset);
+            }
+
+            if(biggerIndexed.size()>0){
+                for(Pair<String,String> p:biggerIndexed) {
+                    IDSource biggerIndexSource = new FTSIDProvider(getIndexSlot(selectedTable, p.getKey()));
+                    Set<String> biggerSet = new HashSet<>();
+                    while(biggerIndexSource.hasNext()){
+                        for(String indexed:biggerIndexSource.readNext()){
+                            if(Integer.parseInt(indexed)>Integer.parseInt(p.getValue())){
+                                IDSource setSource =new  IndexIDProvider(getIndexSlot(selectedTable, p.getKey()),indexed);
+                                while(setSource.hasNext()){
+                                    biggerSet.addAll(setSource.readNext());
+                                }
+                            }
+                        }
+                    }
+                    indexset.retainAll(biggerSet);
+                }
+            }
+            if(smallerIndexed.size()>0){
+                for(Pair<String,String> p:smallerIndexed) {
+                    IDSource smallerIndexSource = new FTSIDProvider(getIndexSlot(selectedTable, p.getKey()));
+                    Set<String> smallerSet = new HashSet<>();
+                    while(smallerIndexSource.hasNext()){
+                        for(String indexed:smallerIndexSource.readNext()){
+                            if(Integer.parseInt(indexed) < Integer.parseInt(p.getValue())){
+                                IDSource setSource =new  IndexIDProvider(getIndexSlot(selectedTable, p.getKey()),indexed);
+                                while(setSource.hasNext()){
+                                    smallerSet.addAll(setSource.readNext());
+                                }
+                            }
+                        }
+                    }
+                    indexset.retainAll(smallerSet);
+                }
             }
             Worker.RDB.select(selectedTable.getSlotNumber());
             for (String key : indexset) {

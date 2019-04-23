@@ -20,12 +20,10 @@ public class Main {
             Client.getClient().write("Use Emese" + "\n");
             System.out.println(Client.getClient().readLine());
 
-            Client.getClient().write("select id,regular FROM Indextest2 where index1 = 1  AND index2=2 AND regular=3"+"\n");
+            Client.getClient().write("select * FROM Indextest2 where  id <500000 AND index1 > 5 AND index2 <5 AND regular > 5 "+"\n");
             System.out.println(Client.getClient().readLine());//read READY
 
             XmlMapper xmlMapper = new XmlMapper();
-
-
             Header readHeader = xmlMapper.readValue(Client.getClient().readLine(), Header.class);
             for (int i = 0; i < readHeader.getPageNumber(); i++) {
                 Page page = xmlMapper.readValue(Client.getClient().readLine(), Page.class);

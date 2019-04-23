@@ -62,7 +62,7 @@ public class RedisConnector {//Lifecycle: start thread, create connection, {inse
         j.close();
         j=null;
         redisProcess=null;
-        System.out.println("RDB stopped");
+        System.out.println("REDIS stopped");
     }
 
     public void dropselected(){
