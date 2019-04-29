@@ -393,7 +393,7 @@ public class SelectQuery {
             }
         }
 
-        if (equalityIndexed.size() == 0) {//in this case, there are no indexed columns, initiate FTS
+        if (equalityIndexed.size() == 0 && biggerIndexed.size() == 0 && smallerIndexed.size() == 0) {//in this case, there are no indexed columns, initiate FTS
             IDSource ids = new FTSIDProvider(selectedTable.getSlotNumber());
             while (ids.hasNext()) {
                 for(String id:ids.readNext()){
@@ -404,21 +404,22 @@ public class SelectQuery {
             }
         } else {
 
-            //set the result of the selection based on the first index file
-            IDSource ids = new IndexIDProvider(getIndexSlot(selectedTable, equalityIndexed.get(0).getKey()), equalityIndexed.get(0).getValue());
             Set<String> indexset = new HashSet<>();
-
-            while (ids.hasNext()) {
-                indexset.addAll(new ArrayList<>(ids.readNext()));//get everything
-            }
-
-            for (int i = 1; i < equalityIndexed.size(); i++) {//for every other indexed Column, perform intersection
-                Set<String> partialindexset = new TreeSet<>();
-                ids = new IndexIDProvider(getIndexSlot(selectedTable, equalityIndexed.get(i).getKey()), equalityIndexed.get(i).getValue());
+            //set the result of the selection based on the first index file
+            IDSource ids;
+            if(equalityIndexed.size() > 0) {
+                ids = new IndexIDProvider(getIndexSlot(selectedTable, equalityIndexed.get(0).getKey()), equalityIndexed.get(0).getValue());
                 while (ids.hasNext()) {
-                    partialindexset.addAll(new ArrayList<>(ids.readNext()));
+                    indexset.addAll(new ArrayList<>(ids.readNext()));//get everything
                 }
-                indexset.retainAll(partialindexset);
+                for (int i = 1; i < equalityIndexed.size(); i++) {//for every other indexed Column, perform intersection
+                    Set<String> partialindexset = new TreeSet<>();
+                    ids = new IndexIDProvider(getIndexSlot(selectedTable, equalityIndexed.get(i).getKey()), equalityIndexed.get(i).getValue());
+                    while (ids.hasNext()) {
+                        partialindexset.addAll(new ArrayList<>(ids.readNext()));
+                    }
+                    indexset.retainAll(partialindexset);
+                }
             }
 
             if(biggerIndexed.size()>0){
@@ -435,7 +436,12 @@ public class SelectQuery {
                             }
                         }
                     }
-                    indexset.retainAll(biggerSet);
+                    if(equalityIndexed.size() > 0){
+                        indexset.retainAll(biggerSet);
+                    }
+                    else {
+                        indexset.addAll(biggerSet);
+                    }
                 }
             }
             if(smallerIndexed.size()>0){
@@ -452,7 +458,12 @@ public class SelectQuery {
                             }
                         }
                     }
-                    indexset.retainAll(smallerSet);
+                    if(equalityIndexed.size() > 0 || biggerIndexed.size() > 0 ) {
+                        indexset.retainAll(smallerSet);
+                    }
+                    else {
+                        indexset.addAll(smallerSet);
+                    }
                 }
             }
             Worker.RDB.select(selectedTable.getSlotNumber());
