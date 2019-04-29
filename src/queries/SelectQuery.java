@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class SelectQuery {
-    private static final int numberOfRowsInPage = 500;
+    private static final int numberOfRowsInPage =   1000;
 
     class Query {
         public ArrayList<String> selectedColumns;

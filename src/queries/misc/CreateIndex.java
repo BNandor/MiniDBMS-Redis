@@ -5,6 +5,7 @@ import comm.ServerException;
 import comm.Worker;
 import persistence.RedisConnector;
 import persistence.XML;
+import redis.clients.jedis.ScanParams;
 import redis.clients.jedis.ScanResult;
 import struct.IndexFile;
 import struct.Table;
@@ -16,6 +17,7 @@ import java.util.List;
 public class CreateIndex {
 
     private static CreateIndex instance;
+    private Integer resultsPerQuery = 1000;
 
     private CreateIndex() {
 
@@ -49,7 +51,9 @@ public class CreateIndex {
     private void fillCreatedIndex(Table t, String attribute, int indexSlot) {
         Worker.RDB.select(t.getSlotNumber());
         String cursor = "0";
-        ScanResult<String> result= Worker.RDB.scan(cursor);// scan can return an element multiple times,
+        ScanParams params = new ScanParams();
+        params.count(resultsPerQuery);
+        ScanResult<String> result= Worker.RDB.scan(cursor,params);// scan can return an element multiple times,
                             // but since we are saving to a set, duplicates don't matter
         do{
             //result has a set of keys on which we can iterate
@@ -66,7 +70,7 @@ public class CreateIndex {
             }
             Worker.RDB.select(t.getSlotNumber());
             cursor = result.getCursor();
-            result = Worker.RDB.scan(cursor);
+            result = Worker.RDB.scan(cursor,params);
         }while(!result.getCursor().equals("0"));
         List<String> attributeValues=new ArrayList<>();//get attribute values at current keys
         for(String key:result.getResult()){
