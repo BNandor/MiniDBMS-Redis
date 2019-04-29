@@ -50,6 +50,11 @@ public class RedisConnector {//Lifecycle: start thread, create connection, {inse
         }
     }
 
+    public void closeConnection(){
+        j.close();
+        j=null;
+        System.out.println("REDIS connection stopped");
+    }
     public void killServer()  {
         if(!redisProcess.isAlive()){
             System.out.println("RedisConnector: cannot kill server which was not started already");

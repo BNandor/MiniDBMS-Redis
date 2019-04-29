@@ -4,6 +4,7 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import comm.ServerException;
 import comm.Worker;
 import javafx.util.Pair;
+import persistence.RedisConnector;
 import persistence.XML;
 import queries.misc.selectpipeline.FTSIDProvider;
 import queries.misc.selectpipeline.IDSource;
@@ -21,10 +22,11 @@ import java.io.PrintWriter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
-public class SelectQuery {
+
+public class SimpleSelectQuery {
     private static final int numberOfRowsInPage =   1000;
+    private RedisConnector redisConnection;
 
     class Query {
         public ArrayList<String> selectedColumns;
@@ -48,22 +50,28 @@ public class SelectQuery {
     private PrintWriter messageSender;
     private String queryString;
 
-    public SelectQuery(String queryString, PrintWriter messageSender) {
+    public SimpleSelectQuery(String queryString, PrintWriter messageSender) {
         this.messageSender = messageSender;
         this.queryString = queryString;
+        this.redisConnection = new RedisConnector();
+        redisConnection.connect();
     }
-
+    public SimpleSelectQuery(String queryString) {
+        this.queryString = queryString;
+        this.redisConnection = new RedisConnector();
+        redisConnection.connect();
+    }
     public Query buildQuery() throws ServerException {
 
-        String[] splitatFrom = queryString.split("from");
-        if (splitatFrom.length == 1) {
-            splitatFrom = queryString.split("FROM");
+        String[] splitAtFrom = queryString.split("from");
+        if (splitAtFrom.length == 1) {
+            splitAtFrom = queryString.split("FROM");
         }
-        if (splitatFrom.length == 1) {
+        if (splitAtFrom.length == 1) {
             throw new ServerException("Syntax error in select : " + queryString);
         }
-        //Select selectted columns
-        StringTokenizer selectEliminator = new StringTokenizer(splitatFrom[0]); // select col1,col2
+        //Select selected columns
+        StringTokenizer selectEliminator = new StringTokenizer(splitAtFrom[0]); // select col1,col2
         selectEliminator.nextToken();//removing first select
         String columns = selectEliminator.nextToken("");//col1,col2
         StringTokenizer columnTokenizer = new StringTokenizer(columns.replaceAll(" ", ""), ",");
@@ -71,17 +79,17 @@ public class SelectQuery {
         while (columnTokenizer.hasMoreTokens()) {
             query.selectedColumns.add(columnTokenizer.nextToken());
         }
-        String[] splitatWhere = splitatFrom[1].split("where");
-        if (splitatWhere.length == 1) {
-            splitatWhere = splitatFrom[1].split("WHERE");
+        String[] splitAtWhere = splitAtFrom[1].split("where");
+        if (splitAtWhere.length == 1) {
+            splitAtWhere = splitAtFrom[1].split("WHERE");
         }
 
-        if (splitatWhere.length == 1) {
-            query.tableName = splitatFrom[1].trim();//if there are no constraints
+        if (splitAtWhere.length == 1) {
+            query.tableName = splitAtFrom[1].trim();//if there are no constraints
         } else {
-            query.tableName = splitatWhere[0].trim();//TODO implement joins
+            query.tableName = splitAtWhere[0].trim();//TODO implement joins
 
-            String[] constraints = splitatWhere[1].trim().split("\\s*AND|and+\\s*");//We have yet to support or
+            String[] constraints = splitAtWhere[1].trim().split("\\s*AND|and+\\s*");//We have yet to support or
 
             for (int i = 0; i < constraints.length; i++) {
                 String constraint = constraints[i];
@@ -207,7 +215,7 @@ public class SelectQuery {
                     if (column.equals(partialResult.selectedTable.getKey().getName())) {
                         row.getValues().add(String.valueOf(currentID));
                     } else {
-                        row.getValues().add(Worker.RDB.getColumn(currentID + "", column));
+                        row.getValues().add(redisConnection.getColumn(currentID + "", column));
                     }
                 }
                 page.getRows().add(row);
@@ -224,10 +232,10 @@ public class SelectQuery {
 
     private boolean thisTablePKSelectable(Query query, String pk) throws ServerException {
         // TODO optimization: do not check constraints on which we have an index
-        if (!Worker.RDB.keyExists(pk)) return false;
+        if (!redisConnection.keyExists(pk)) return false;
         Iterator<String> operatorIterator = query.operators.iterator();
         for (Pair<String, String> p : query.constraints) {
-            String realVal = Worker.RDB.getColumn(pk, p.getKey());
+            String realVal = redisConnection.getColumn(pk, p.getKey());
             try {
                 switch (operatorIterator.next()) {
                     case "=": {
@@ -299,6 +307,7 @@ public class SelectQuery {
     }
 
     public PartialResult select(Query query) throws comm.ServerException {
+
         System.out.println(query);
         PartialResult result = new PartialResult(query);
 
@@ -320,12 +329,12 @@ public class SelectQuery {
             if (XML.attributeIsUnique(query.tableName, p.getKey(), Worker.currentlyWorking)) {//we're lucky
                 //we have a maximum of one result
                 if(operator.equals("=")) {
-                    Worker.RDB.select(getUniqueSlot(selectedTable, p.getKey()));//select index db
-                    String uniquePK = Worker.RDB.get(p.getValue());
+                    redisConnection.select(getUniqueSlot(selectedTable, p.getKey()));//select index db
+                    String uniquePK = redisConnection.get(p.getValue());
                     if (uniquePK == null) {//there is no record with that unique value
                         return result;
                     }
-                    Worker.RDB.select(selectedTable.getSlotNumber());
+                    redisConnection.select(selectedTable.getSlotNumber());
                     if (thisTablePKSelectable(query, uniquePK)) {
                         result.add(uniquePK);
                     }
@@ -338,7 +347,7 @@ public class SelectQuery {
                         while (source.hasNext()) {
                             for (String uval : source.readNext()) {
                                 if (Integer.parseInt(uval) > Integer.parseInt(p.getValue())) {
-                                    pres.add(Worker.RDB.get(uval));
+                                    pres.add(redisConnection.get(uval));
                                 }
 
                             }
@@ -348,13 +357,12 @@ public class SelectQuery {
                         while (source.hasNext()) {
                             for (String uval : source.readNext()) {
                                 if (Integer.parseInt(uval) < Integer.parseInt(p.getValue())) {
-                                    pres.add(Worker.RDB.get(uval));
+                                    pres.add(redisConnection.get(uval));
                                 }
-
                             }
                         }
                     }
-                    Worker.RDB.select(selectedTable.getSlotNumber());
+                    redisConnection.select(selectedTable.getSlotNumber());
                     for (String key : pres) {
                         if (thisTablePKSelectable(query, key)) {
                             result.add(key);
@@ -368,7 +376,7 @@ public class SelectQuery {
         for (Pair<String, String> p : query.constraints) {//check for constraints on primary key
             String op = operatorIterator.next();
             if (XML.attributeIsPrimaryKey(query.tableName, p.getKey(), Worker.currentlyWorking) && op.equals("=")) {//we're lucky
-                Worker.RDB.select(selectedTable.getSlotNumber());
+                redisConnection.select(selectedTable.getSlotNumber());
                 if (thisTablePKSelectable(query, p.getValue())) {
                     result.add(p.getValue());
                 }
@@ -466,15 +474,19 @@ public class SelectQuery {
                     }
                 }
             }
-            Worker.RDB.select(selectedTable.getSlotNumber());
+            redisConnection.select(selectedTable.getSlotNumber());
             for (String key : indexset) {
                 if (thisTablePKSelectable(query, key)) {
                     result.add(key);
                 }
             }
         }
-
-
         return result;
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        super.finalize();
+        redisConnection.closeConnection();
     }
 }

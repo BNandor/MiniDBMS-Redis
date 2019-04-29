@@ -1,11 +1,11 @@
 package comm;
 
-import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
 import persistence.RedisConnector;
 import persistence.XML;
 import queries.DeleteQuery;
 import queries.InsertQuery;
-import queries.SelectQuery;
+import queries.JoinSelectQuery;
+import queries.SimpleSelectQuery;
 import queries.misc.ConstraintChecker;
 import queries.misc.CreateIndex;
 import struct.Database;
@@ -18,7 +18,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.rmi.ServerException;
 import java.util.ArrayDeque;
 import java.util.NoSuchElementException;
 import java.util.Queue;
@@ -111,8 +110,13 @@ public class Worker extends Thread {
                                 if (!usingDatabase()) {
                                     throw new comm.ServerException("Please USE a database");
                                 }
-                                SelectQuery selectQuery =  new SelectQuery(query,messageSender);
-                                selectQuery.writeResult(selectQuery.select(selectQuery.buildQuery()));
+                                if(query.contains("JOIN") || query.contains("join")){
+                                    JoinSelectQuery joinSelectQuery = new JoinSelectQuery(query);
+                                    System.out.println(joinSelectQuery.root);
+                                }else {
+                                    SimpleSelectQuery simpleSelectQuery = new SimpleSelectQuery(query, messageSender);
+                                    simpleSelectQuery.writeResult(simpleSelectQuery.select(simpleSelectQuery.buildQuery()));
+                                }
                             }break;
                             case "delete":{
                                 try {
