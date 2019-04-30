@@ -66,13 +66,13 @@ public class Worker extends Thread {
     @Override
     public void run() {
         super.run();
-        boolean dbchanged=false;
+        boolean dbchanged = false;
         while (true) {
             while (jobs.size() == 0) {
                 try {
-                    if(usingDatabase() && dbchanged) {
+                    if (usingDatabase() && dbchanged) {
                         RDB.save();
-                        dbchanged=false;
+                        dbchanged = false;
                         System.out.println("REDIS SAVED");
                     }
                     Thread.sleep(2500);
@@ -94,7 +94,8 @@ public class Worker extends Thread {
                             RDB.killServer();
                         }
                         System.exit(0);
-                    }break;
+                    }
+                    break;
                     case Client.getDatabasesQuery: {
                         XML.flush();
                         messageSender.write(XML.readXML() + "\n");
@@ -106,38 +107,41 @@ public class Worker extends Thread {
 
                         String method = tokenizer.nextToken(), object = tokenizer.nextToken();
                         switch (method.toLowerCase()) {
-                            case "select":{
+                            case "select": {
                                 if (!usingDatabase()) {
                                     throw new comm.ServerException("Please USE a database");
                                 }
-                                if(query.contains("JOIN") || query.contains("join")){
+                                if (query.contains("JOIN") || query.contains("join")) {
                                     JoinSelectQuery joinSelectQuery = new JoinSelectQuery(query);
-                                    System.out.println(joinSelectQuery.root);
-                                }else {
+                                    joinSelectQuery.runSubqueries();
+                                    System.out.println(joinSelectQuery.root.inOrder());
+                                } else {
                                     SimpleSelectQuery simpleSelectQuery = new SimpleSelectQuery(query, messageSender);
                                     simpleSelectQuery.writeResult(simpleSelectQuery.select(simpleSelectQuery.buildQuery()));
                                 }
-                            }break;
-                            case "delete":{
+                            }
+                            break;
+                            case "delete": {
                                 try {
                                     if (!usingDatabase()) {
                                         throw new comm.ServerException("Please USE a database");
                                     }
                                     String tableName = tokenizer.nextToken();//Table
 
-                                    if(!XML.tableExists(tableName,currentlyWorking)){
-                                        throw new comm.ServerException("Error: table "+tableName+" does not exist int database");
+                                    if (!XML.tableExists(tableName, currentlyWorking)) {
+                                        throw new comm.ServerException("Error: table " + tableName + " does not exist int database");
                                     }
 
                                     //TODO implement delete from table //this means everything
                                     String primaryKeyValue = query.split("=")[1];
-                                    Table t = XML.getTable(tableName,currentlyWorking);
-                                    DeleteQuery.getInstance().delete(t,primaryKeyValue);
-                                    dbchanged=true;
-                                }catch(NoSuchElementException |IndexOutOfBoundsException ex){
+                                    Table t = XML.getTable(tableName, currentlyWorking);
+                                    DeleteQuery.getInstance().delete(t, primaryKeyValue);
+                                    dbchanged = true;
+                                } catch (NoSuchElementException | IndexOutOfBoundsException ex) {
                                     throw new comm.ServerException("Error deleting row(s), syntax error");
                                 }
-                            }break;
+                            }
+                            break;
                             case "create": {
                                 switch (object.toLowerCase()) {
                                     case "database": {
@@ -155,7 +159,7 @@ public class Worker extends Thread {
                                             XML.getDatabasesInstance().getDatabaseList().add(d);
                                             XML.flush();
                                             DatabaseBuilder.createDatabase(name);
-                                            dbchanged=true;
+                                            dbchanged = true;
                                         } catch (FileNotFoundException e) {
                                             e.printStackTrace();
                                             throw new comm.ServerException("Cannot find xml file:" + e.getMessage());
@@ -180,7 +184,7 @@ public class Worker extends Thread {
 
                                             XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().add(TableBuilder.getTable(name, tokenizer));
                                             XML.flush();
-                                            dbchanged=true;
+                                            dbchanged = true;
                                         } catch (FileNotFoundException | comm.ServerException e) {
                                             e.printStackTrace();
                                             throw new comm.ServerException("Error creating table:" + e.getMessage());
@@ -213,10 +217,10 @@ public class Worker extends Thread {
                                                 throw new comm.ServerException("Error creating index file, column " + columnName + " is primary key, it cannot be indexed");
                                             }
 
-                                            Table t = XML.getTable(tableName,currentlyWorking);
-                                            CreateIndex.getInstance().createIndex(t,columnName);
+                                            Table t = XML.getTable(tableName, currentlyWorking);
+                                            CreateIndex.getInstance().createIndex(t, columnName);
                                             XML.flush();
-                                            dbchanged=true;
+                                            dbchanged = true;
                                         } catch (NoSuchElementException ex) {
                                             throw new comm.ServerException("Syntax error in create index");
                                         }
@@ -241,7 +245,7 @@ public class Worker extends Thread {
                                 }
                                 try {
                                     InsertQuery.insert(insertTable, tokenizer);
-                                    dbchanged=true;
+                                    dbchanged = true;
                                 } catch (NoSuchElementException ex) {
                                     throw new comm.ServerException("You have a syntax error in your insert somewhere");
                                 }
@@ -339,7 +343,7 @@ public class Worker extends Thread {
 
                                             XML.getDatabasesInstance().getDatabaseList().get(currentlyWorking).getTables().getTableList().remove(i);
                                             XML.flush();
-                                            dbchanged=true;
+                                            dbchanged = true;
                                         } catch (FileNotFoundException e) {
                                             e.printStackTrace();
                                             throw new comm.ServerException(e.getMessage());

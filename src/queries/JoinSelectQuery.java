@@ -2,13 +2,10 @@ package queries;
 
 import comm.ServerException;
 import comm.Worker;
-import javafx.util.Pair;
 import persistence.XML;
-import struct.Attribute;
 import struct.ForeignKey;
 import struct.Table;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,7 +20,7 @@ public class JoinSelectQuery {
 
     public PartialResultNode root;
 
-    class PartialResultNode {
+   public  class PartialResultNode extends Thread{
 
         public ArrayList<PartialResultNode> children;
         public SimpleSelectQuery.PartialResult partialResult;
@@ -44,12 +41,58 @@ public class JoinSelectQuery {
         }
 
         public void concatConstraint(String constraint) throws ServerException {
-
-            if (simpleQueryString == null) {
-                if (tableName == null) throw new comm.ServerException("Internal error: cannot concat constraint");
-                simpleQueryString = "select * from " + tableName + " where " + constraint;
+            if (!simpleQueryString.contains("where")) {
+                simpleQueryString+=" where " + constraint;
             } else {
                 simpleQueryString += " AND " + constraint;
+            }
+        }
+
+        public String inOrder(){
+            String result="";
+            for (PartialResultNode node:children){
+                result+=node.inOrder()+tableName+" ";
+            }
+            if(children.size()==0){
+                result=tableName+" ";
+            }
+            return result;
+        }
+
+       @Override
+       public void run() {
+           super.run();
+           simpleQuery = new SimpleSelectQuery(simpleQueryString);
+           try {
+               partialResult = simpleQuery.select(simpleQuery.buildQuery());
+               System.out.println(simpleQueryString+"->"+partialResult);
+           } catch (comm.ServerException e) {
+               e.printStackTrace();
+               simpleQuery.setErrorMessage(e.getMessage());
+               System.out.println(simpleQueryString);
+           }
+       }
+
+       public void setTableName(String leftTableName) {
+            tableName = leftTableName;
+           simpleQueryString="select * from " + tableName;
+       }
+   }
+
+    public  void runSubqueries() throws ServerException {
+       for(String table: nodes.keySet()){
+           System.out.println(nodes.get(table).simpleQueryString);
+           nodes.get(table).start();
+        }
+
+        for(String table: nodes.keySet()){
+            try {
+                nodes.get(table).join();
+                if(nodes.get(table).simpleQuery.getErrorMessage() != null){
+                    throw new comm.ServerException(nodes.get(table).simpleQuery.getErrorMessage());
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -96,7 +139,7 @@ public class JoinSelectQuery {
             joins = splitAtFrom[1].split("\\s*JOIN|join+\\s*");
         }
 
-        root.tableName = joins[0].trim();
+        root.setTableName(joins[0].trim());
         if (!XML.tableExists(root.tableName, Worker.currentlyWorking)) {
             throw new comm.ServerException("Error, table " + root.tableName + "does not exist");
         }
@@ -148,19 +191,16 @@ public class JoinSelectQuery {
                             //Everything is fine
                             //rightTableName.rightColumnName references leftTableName.leftColumnName
                             PartialResultNode newResultNode = new PartialResultNode();
-                            newResultNode.tableName = leftTableName;
-                            nodes.put(leftTableName, newResultNode);
                             if (root.tableName.equals(leftTableName)) {//if root is being referenced, update root
-                                newResultNode.tableName = rightTableName;
+                                newResultNode.setTableName(rightTableName);
                                 nodes.put(rightTableName, newResultNode);
                                 ((PartialResultNode) nodes.get(rightTableName)).children.add(root);
                                 root = newResultNode;
                             } else {
-                                newResultNode.tableName = leftTableName;
+                                newResultNode.setTableName(leftTableName);
                                 nodes.put(leftTableName, newResultNode);
                                 ((PartialResultNode) nodes.get(rightTableName)).children.add(newResultNode);
                             }
-                            ((PartialResultNode) nodes.get(rightTableName)).children.add(newResultNode);
                             fkSet = true;
                             break;
                         }
@@ -184,12 +224,12 @@ public class JoinSelectQuery {
                             //leftTableName.leftColumnName references rightTableName.rightColumnName
                             PartialResultNode newResultNode = new PartialResultNode();
                             if (root.tableName.equals(rightTableName)) {//if root is being referenced, update root
-                                newResultNode.tableName = leftTableName;
+                                newResultNode.setTableName(leftTableName);
                                 nodes.put(leftTableName, newResultNode);
                                 ((PartialResultNode) nodes.get(leftTableName)).children.add(root);
                                 root = newResultNode;
                             } else {
-                                newResultNode.tableName = rightTableName;
+                                newResultNode.setTableName(rightTableName);
                                 nodes.put(rightTableName, newResultNode);
                                 ((PartialResultNode) nodes.get(leftTableName)).children.add(newResultNode);
                             }
@@ -250,8 +290,8 @@ public class JoinSelectQuery {
                     }
                 }
 
-                if(column.split("\\.").length!=2){
-                    throw new comm.ServerException("Syntax error 3: near "+column+" please absolute Column name in joint select");
+                if (column.split("\\.").length != 2) {
+                    throw new comm.ServerException("Syntax error 3: near " + column + " please absolute Column name in joint select");
                 }
 
                 String consTable = column.split("\\.")[0];

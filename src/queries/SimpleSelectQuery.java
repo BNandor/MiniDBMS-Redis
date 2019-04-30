@@ -25,8 +25,19 @@ import java.util.regex.Pattern;
 
 
 public class SimpleSelectQuery {
-    private static final int numberOfRowsInPage =   1000;
+
+    private static final int numberOfRowsInPage = 1000;
     private RedisConnector redisConnection;
+
+    private String errorMessage;
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String success) {
+        this.errorMessage = success;
+    }
 
     class Query {
         public ArrayList<String> selectedColumns;
@@ -56,11 +67,13 @@ public class SimpleSelectQuery {
         this.redisConnection = new RedisConnector();
         redisConnection.connect();
     }
+
     public SimpleSelectQuery(String queryString) {
         this.queryString = queryString;
         this.redisConnection = new RedisConnector();
         redisConnection.connect();
     }
+
     public Query buildQuery() throws ServerException {
 
         String[] splitAtFrom = queryString.split("from");
@@ -100,14 +113,14 @@ public class SimpleSelectQuery {
                 Pattern pattern = Pattern.compile(equalityPattern);
                 Matcher matcher = pattern.matcher(constraint);
 
-                String column=null;
-                String value=null;
+                String column = null;
+                String value = null;
 
                 if (matcher.find()) {
                     column = matcher.group(1).trim();
                     value = matcher.group(2).trim();
                     query.operators.add("=");
-                }else {
+                } else {
                     pattern = Pattern.compile(biggerPattern);
                     matcher = pattern.matcher(constraint);
 
@@ -123,7 +136,7 @@ public class SimpleSelectQuery {
                             value = matcher.group(2).trim();
                             query.operators.add("<");
                         } else {
-                            throw new comm.ServerException("Error building query: invalid opertaor in "+constraint);
+                            throw new comm.ServerException("Error building query: invalid opertaor in " + constraint);
                         }
                     }
                 }
@@ -139,8 +152,8 @@ public class SimpleSelectQuery {
                 query.constraints.add(new Pair<>(column, value));
             }
         }
-        if(!XML.tableExists(query.tableName,Worker.currentlyWorking)){
-            throw new comm.ServerException("Error: table "+query.tableName+" does not exist");
+        if (!XML.tableExists(query.tableName, Worker.currentlyWorking)) {
+            throw new comm.ServerException("Error: table " + query.tableName + " does not exist");
         }
 
         if (query.selectedColumns.size() == 1 && query.selectedColumns.get(0).equals("*")) {//handling wildcard
@@ -203,7 +216,7 @@ public class SimpleSelectQuery {
         }
 
         Iterator<Integer> idIterator = partialResult.resultKeys.iterator();
-        Worker.RDB.select(partialResult.selectedTable.getSlotNumber());
+        redisConnection.select(partialResult.selectedTable.getSlotNumber());
 
         for (int i = 0; i < pagenumber; i++) {
             Page page = new Page();
@@ -235,7 +248,10 @@ public class SimpleSelectQuery {
         if (!redisConnection.keyExists(pk)) return false;
         Iterator<String> operatorIterator = query.operators.iterator();
         for (Pair<String, String> p : query.constraints) {
-            String realVal = redisConnection.getColumn(pk, p.getKey());
+            String realVal=null;
+            if(!p.getKey().equals(XML.getTable(query.tableName,Worker.currentlyWorking).getKey().getName())) {
+                realVal = redisConnection.getColumn(pk, p.getKey());
+            }
             try {
                 switch (operatorIterator.next()) {
                     case "=": {
@@ -275,7 +291,7 @@ public class SimpleSelectQuery {
                     }
                     break;
                 }
-            }catch (NumberFormatException ex){
+            } catch (NumberFormatException ex) {
                 ex.printStackTrace();
                 throw new comm.ServerException("Error, cannot convert string to int in constraints");
             }
@@ -323,12 +339,12 @@ public class SimpleSelectQuery {
         }
 
         //everything checks out, let's select
-        Iterator<String> operatorIterator= query.operators.iterator();
-        for (Pair<String, String> p : query.constraints){//check for the presence of unique indexes
+        Iterator<String> operatorIterator = query.operators.iterator();
+        for (Pair<String, String> p : query.constraints) {//check for the presence of unique indexes
             String operator = operatorIterator.next();
             if (XML.attributeIsUnique(query.tableName, p.getKey(), Worker.currentlyWorking)) {//we're lucky
                 //we have a maximum of one result
-                if(operator.equals("=")) {
+                if (operator.equals("=")) {
                     redisConnection.select(getUniqueSlot(selectedTable, p.getKey()));//select index db
                     String uniquePK = redisConnection.get(p.getValue());
                     if (uniquePK == null) {//there is no record with that unique value
@@ -339,11 +355,11 @@ public class SimpleSelectQuery {
                         result.add(uniquePK);
                     }
                     return result;
-                }else{
-                    IDSource source = new FTSIDProvider(getUniqueSlot(selectedTable, p.getKey()));
+                } else {
+                    IDSource source = new FTSIDProvider(getUniqueSlot(selectedTable, p.getKey()),redisConnection);
                     Set<String> pres = new TreeSet<>();//TODO implement streaming here also
 
-                    if(operator.equals(">")) {
+                    if (operator.equals(">")) {
                         while (source.hasNext()) {
                             for (String uval : source.readNext()) {
                                 if (Integer.parseInt(uval) > Integer.parseInt(p.getValue())) {
@@ -352,8 +368,7 @@ public class SimpleSelectQuery {
 
                             }
                         }
-                    }
-                    else{
+                    } else {
                         while (source.hasNext()) {
                             for (String uval : source.readNext()) {
                                 if (Integer.parseInt(uval) < Integer.parseInt(p.getValue())) {
@@ -368,11 +383,11 @@ public class SimpleSelectQuery {
                             result.add(key);
                         }
                     }
-                        return result;
+                    return result;
                 }
             }
         }
-        operatorIterator= query.operators.iterator();
+        operatorIterator = query.operators.iterator();
         for (Pair<String, String> p : query.constraints) {//check for constraints on primary key
             String op = operatorIterator.next();
             if (XML.attributeIsPrimaryKey(query.tableName, p.getKey(), Worker.currentlyWorking) && op.equals("=")) {//we're lucky
@@ -394,18 +409,24 @@ public class SimpleSelectQuery {
             String op = operatorIterator.next();
             if (XML.hasIndex(query.tableName, p.getKey(), Worker.currentlyWorking)) {
                 switch (op) {
-                    case "=":   equalityIndexed.add(new Pair<>(p.getKey(), p.getValue()));break;
-                    case ">":   biggerIndexed.add(new Pair<>(p.getKey(), p.getValue()));break;
-                    case "<":   smallerIndexed.add(new Pair<>(p.getKey(), p.getValue()));break;
+                    case "=":
+                        equalityIndexed.add(new Pair<>(p.getKey(), p.getValue()));
+                        break;
+                    case ">":
+                        biggerIndexed.add(new Pair<>(p.getKey(), p.getValue()));
+                        break;
+                    case "<":
+                        smallerIndexed.add(new Pair<>(p.getKey(), p.getValue()));
+                        break;
                 }
             }
         }
 
         if (equalityIndexed.size() == 0 && biggerIndexed.size() == 0 && smallerIndexed.size() == 0) {//in this case, there are no indexed columns, initiate FTS
-            IDSource ids = new FTSIDProvider(selectedTable.getSlotNumber());
+            IDSource ids = new FTSIDProvider(selectedTable.getSlotNumber(),redisConnection);
             while (ids.hasNext()) {
-                for(String id:ids.readNext()){
-                    if(thisTablePKSelectable(query, id)){
+                for (String id : ids.readNext()) {
+                    if (thisTablePKSelectable(query, id)) {
                         result.resultKeys.add(Integer.parseInt(id));
                     }
                 }
@@ -415,14 +436,14 @@ public class SimpleSelectQuery {
             Set<String> indexset = new HashSet<>();
             //set the result of the selection based on the first index file
             IDSource ids;
-            if(equalityIndexed.size() > 0) {
-                ids = new IndexIDProvider(getIndexSlot(selectedTable, equalityIndexed.get(0).getKey()), equalityIndexed.get(0).getValue());
+            if (equalityIndexed.size() > 0) {
+                ids = new IndexIDProvider(getIndexSlot(selectedTable, equalityIndexed.get(0).getKey()), equalityIndexed.get(0).getValue(),redisConnection);
                 while (ids.hasNext()) {
                     indexset.addAll(new ArrayList<>(ids.readNext()));//get everything
                 }
                 for (int i = 1; i < equalityIndexed.size(); i++) {//for every other indexed Column, perform intersection
                     Set<String> partialindexset = new TreeSet<>();
-                    ids = new IndexIDProvider(getIndexSlot(selectedTable, equalityIndexed.get(i).getKey()), equalityIndexed.get(i).getValue());
+                    ids = new IndexIDProvider(getIndexSlot(selectedTable, equalityIndexed.get(i).getKey()), equalityIndexed.get(i).getValue(),redisConnection);
                     while (ids.hasNext()) {
                         partialindexset.addAll(new ArrayList<>(ids.readNext()));
                     }
@@ -430,46 +451,44 @@ public class SimpleSelectQuery {
                 }
             }
 
-            if(biggerIndexed.size()>0){
-                for(Pair<String,String> p:biggerIndexed) {
-                    IDSource biggerIndexSource = new FTSIDProvider(getIndexSlot(selectedTable, p.getKey()));
+            if (biggerIndexed.size() > 0) {
+                for (Pair<String, String> p : biggerIndexed) {
+                    IDSource biggerIndexSource = new FTSIDProvider(getIndexSlot(selectedTable, p.getKey()),redisConnection);
                     Set<String> biggerSet = new HashSet<>();
-                    while(biggerIndexSource.hasNext()){
-                        for(String indexed:biggerIndexSource.readNext()){
-                            if(Integer.parseInt(indexed)>Integer.parseInt(p.getValue())){
-                                IDSource setSource =new  IndexIDProvider(getIndexSlot(selectedTable, p.getKey()),indexed);
-                                while(setSource.hasNext()){
+                    while (biggerIndexSource.hasNext()) {
+                        for (String indexed : biggerIndexSource.readNext()) {
+                            if (Integer.parseInt(indexed) > Integer.parseInt(p.getValue())) {
+                                IDSource setSource = new IndexIDProvider(getIndexSlot(selectedTable, p.getKey()), indexed,redisConnection);
+                                while (setSource.hasNext()) {
                                     biggerSet.addAll(setSource.readNext());
                                 }
                             }
                         }
                     }
-                    if(equalityIndexed.size() > 0){
+                    if (equalityIndexed.size() > 0) {
                         indexset.retainAll(biggerSet);
-                    }
-                    else {
+                    } else {
                         indexset.addAll(biggerSet);
                     }
                 }
             }
-            if(smallerIndexed.size()>0){
-                for(Pair<String,String> p:smallerIndexed) {
-                    IDSource smallerIndexSource = new FTSIDProvider(getIndexSlot(selectedTable, p.getKey()));
+            if (smallerIndexed.size() > 0) {
+                for (Pair<String, String> p : smallerIndexed) {
+                    IDSource smallerIndexSource = new FTSIDProvider(getIndexSlot(selectedTable, p.getKey()),redisConnection);
                     Set<String> smallerSet = new HashSet<>();
-                    while(smallerIndexSource.hasNext()){
-                        for(String indexed:smallerIndexSource.readNext()){
-                            if(Integer.parseInt(indexed) < Integer.parseInt(p.getValue())){
-                                IDSource setSource =new  IndexIDProvider(getIndexSlot(selectedTable, p.getKey()),indexed);
-                                while(setSource.hasNext()){
+                    while (smallerIndexSource.hasNext()) {
+                        for (String indexed : smallerIndexSource.readNext()) {
+                            if (Integer.parseInt(indexed) < Integer.parseInt(p.getValue())) {
+                                IDSource setSource = new IndexIDProvider(getIndexSlot(selectedTable, p.getKey()), indexed,redisConnection);
+                                while (setSource.hasNext()) {
                                     smallerSet.addAll(setSource.readNext());
                                 }
                             }
                         }
                     }
-                    if(equalityIndexed.size() > 0 || biggerIndexed.size() > 0 ) {
+                    if (equalityIndexed.size() > 0 || biggerIndexed.size() > 0) {
                         indexset.retainAll(smallerSet);
-                    }
-                    else {
+                    } else {
                         indexset.addAll(smallerSet);
                     }
                 }

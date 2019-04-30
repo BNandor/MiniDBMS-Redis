@@ -1,6 +1,7 @@
 package queries.misc.selectpipeline;
 
 import comm.Worker;
+import persistence.RedisConnector;
 import redis.clients.jedis.ScanParams;
 import redis.clients.jedis.ScanResult;
 
@@ -12,19 +13,21 @@ public class FTSIDProvider implements IDSource{
     private int tableSlot;
     private String cursor;
     private boolean readAll;
+    private RedisConnector redisConnector;
 
-    public FTSIDProvider(int slot) {
+    public FTSIDProvider(int slot,RedisConnector connector) {
         this.tableSlot = slot;
         cursor = "0";
         readAll = false;
         params = new ScanParams();
         params.count(resultPerQuery);
+        this.redisConnector = connector;
     }
 
     @Override
     public List<String> readNext() {
-        Worker.RDB.select(tableSlot);
-        ScanResult<String> result= Worker.RDB.scan(cursor,params);
+        redisConnector.select(tableSlot);
+        ScanResult<String> result= redisConnector.scan(cursor,params);
         if(result.getCursor().equals("0")){
             readAll = true;
         }

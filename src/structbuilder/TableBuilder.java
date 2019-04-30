@@ -46,7 +46,7 @@ public class TableBuilder {
                     }
                     //TODO check if referenced attribute is of type id, or at least unique
                     if (!XML.attributeExists(refTable, refAttr, Worker.currentlyWorking)) {
-                        throw new comm.ServerException("Referenced attribute does not exist " + refAttr);
+                        throw new comm.ServerException("Referenced attribute does not exist " + refTable+"."+refAttr);
                     }
 
                     ForeignKey fk = new ForeignKey(attr.getName(), refTable, refAttr);
