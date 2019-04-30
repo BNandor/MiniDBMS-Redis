@@ -172,7 +172,7 @@ public class SimpleSelectQuery {
         return query;
     }
 
-    class PartialResult { //encapsulates a selection from one table only
+    public class PartialResult { //encapsulates a selection from one table only
 
         private Query query;
         private Table selectedTable;
@@ -191,6 +191,7 @@ public class SimpleSelectQuery {
         public String toString() {
             return resultKeys + "";
         }
+        public Set<Integer> getIDs(){return resultKeys;}
     }
 
     public void writeResult(PartialResult partialResult) throws ServerException {

@@ -2,16 +2,18 @@ package queries;
 
 import comm.ServerException;
 import comm.Worker;
+import persistence.RedisConnector;
 import persistence.XML;
+import queries.misc.selectpipeline.IDSource;
+import queries.misc.selectpipeline.IndexIDProvider;
 import struct.ForeignKey;
+import struct.IndexFile;
 import struct.Table;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.StringTokenizer;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class JoinSelectQuery {
 
@@ -20,9 +22,10 @@ public class JoinSelectQuery {
 
     public PartialResultNode root;
 
-   public  class PartialResultNode extends Thread{
+    public class PartialResultNode extends Thread {
 
         public ArrayList<PartialResultNode> children;
+
         public SimpleSelectQuery.PartialResult partialResult;
 
         private SimpleSelectQuery simpleQuery;
@@ -42,53 +45,52 @@ public class JoinSelectQuery {
 
         public void concatConstraint(String constraint) throws ServerException {
             if (!simpleQueryString.contains("where")) {
-                simpleQueryString+=" where " + constraint;
+                simpleQueryString += " where " + constraint;
             } else {
                 simpleQueryString += " AND " + constraint;
             }
         }
 
-        public String inOrder(){
-            String result="";
-            for (PartialResultNode node:children){
-                result+=node.inOrder()+tableName+" ";
+        public String inOrder() {
+            String result = "";
+            for (PartialResultNode node : children) {
+                result += node.inOrder() + tableName + " ";
             }
-            if(children.size()==0){
-                result=tableName+" ";
+            if (children.size() == 0) {
+                result = tableName + " ";
             }
             return result;
         }
 
-       @Override
-       public void run() {
-           super.run();
-           simpleQuery = new SimpleSelectQuery(simpleQueryString);
-           try {
-               partialResult = simpleQuery.select(simpleQuery.buildQuery());
-               System.out.println(simpleQueryString+"->"+partialResult);
-           } catch (comm.ServerException e) {
-               e.printStackTrace();
-               simpleQuery.setErrorMessage(e.getMessage());
-               System.out.println(simpleQueryString);
-           }
-       }
-
-       public void setTableName(String leftTableName) {
-            tableName = leftTableName;
-           simpleQueryString="select * from " + tableName;
-       }
-   }
-
-    public  void runSubqueries() throws ServerException {
-       for(String table: nodes.keySet()){
-           System.out.println(nodes.get(table).simpleQueryString);
-           nodes.get(table).start();
+        @Override
+        public void run() {
+            super.run();
+            simpleQuery = new SimpleSelectQuery(simpleQueryString);
+            try {
+                partialResult = simpleQuery.select(simpleQuery.buildQuery());
+                //System.out.println(simpleQueryString + "->" + partialResult);
+            } catch (comm.ServerException e) {
+                e.printStackTrace();
+                simpleQuery.setErrorMessage(e.getMessage());
+                System.out.println(simpleQueryString);
+            }
         }
 
-        for(String table: nodes.keySet()){
+        public void setTableName(String leftTableName) {
+            tableName = leftTableName;
+            simpleQueryString = "select * from " + tableName;
+        }
+    }
+
+    public void runSubqueries() throws ServerException {
+        for (String table : nodes.keySet()) {
+            nodes.get(table).start();
+        }
+
+        for (String table : nodes.keySet()) {
             try {
                 nodes.get(table).join();
-                if(nodes.get(table).simpleQuery.getErrorMessage() != null){
+                if (nodes.get(table).simpleQuery.getErrorMessage() != null) {
                     throw new comm.ServerException(nodes.get(table).simpleQuery.getErrorMessage());
                 }
             } catch (InterruptedException e) {
@@ -316,5 +318,52 @@ public class JoinSelectQuery {
 //            }
 //        }
 
+    }
+
+    private void hashedJoin(PartialResultNode referencer, PartialResultNode referenced) throws ServerException {
+        int indexSlot=-1;
+
+        for(ForeignKey fk:XML.getTable(referencer.tableName,Worker.currentlyWorking).getForeignKeys().getForeignKeyList()){
+            if(fk.getRefTableName().equals(referenced.tableName)){
+                for(IndexFile index:XML.getTable(referencer.tableName,Worker.currentlyWorking).getIndexFiles().getIndexFiles()){
+                    if(index.getName().equals(fk.getName())){
+                        indexSlot = index.getIndexFileName();
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+
+        if(indexSlot == -1){
+            throw new comm.ServerException("Error: there is no connection between "+referencer.tableName+" and "+referenced.tableName);
+        }
+
+        Set<Integer> eligibleIds = new TreeSet<>();
+        RedisConnector connector = new RedisConnector();
+        connector.connect();
+        for (Integer referencedKey:referenced.partialResult.getIDs()){
+            IDSource idSource = new IndexIDProvider(indexSlot,referencedKey.toString(),connector);
+            while(idSource.hasNext()){
+                eligibleIds.addAll(idSource.readNext().stream().map(a->Integer.parseInt(a)).collect(Collectors.toList()));
+            }
+        }
+
+        referencer.partialResult.getIDs().retainAll(eligibleIds);
+        connector.closeConnection();
+    }
+
+    public void joinAll(PartialResultNode node) throws ServerException {
+        if(node.children.isEmpty()){
+            return;
+        }
+        //first join the  children
+        for (PartialResultNode child:node.children){
+            joinAll(child);
+        }
+        //then do the join on the results
+        for (PartialResultNode child:node.children){
+            hashedJoin(node,child);
+        }
     }
 }
