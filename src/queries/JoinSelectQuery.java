@@ -1,15 +1,22 @@
 package queries;
 
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import comm.ServerException;
 import comm.Worker;
 import persistence.RedisConnector;
 import persistence.XML;
 import queries.misc.selectpipeline.IDSource;
 import queries.misc.selectpipeline.IndexIDProvider;
+import queries.misc.selectresultprotocol.Header;
+import queries.misc.selectresultprotocol.Page;
+import queries.misc.selectresultprotocol.Row;
+import struct.Attribute;
 import struct.ForeignKey;
 import struct.IndexFile;
 import struct.Table;
 
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,21 +28,25 @@ public class JoinSelectQuery {
     private Map<String, PartialResultNode> nodes;
 
     public PartialResultNode root;
+    private static final int numberOfRowsInPage = SimpleSelectQuery.numberOfRowsInPage;
 
     public class PartialResultNode extends Thread {
 
         public ArrayList<PartialResultNode> children;
-
+        public ArrayList<String> connectingColumnNames;
         public SimpleSelectQuery.PartialResult partialResult;
 
         private SimpleSelectQuery simpleQuery;
         private ArrayList<String> selectedColumns;
         private String tableName;
         private String simpleQueryString;
+        private Map<Integer, ArrayList<String> > rows;
 
         public PartialResultNode() {
             children = new ArrayList<>();
             selectedColumns = new ArrayList<>();
+            connectingColumnNames = new ArrayList<>();
+            rows = new HashMap<>();
         }
 
         @Override
@@ -196,12 +207,14 @@ public class JoinSelectQuery {
                             if (root.tableName.equals(leftTableName)) {//if root is being referenced, update root
                                 newResultNode.setTableName(rightTableName);
                                 nodes.put(rightTableName, newResultNode);
-                                ((PartialResultNode) nodes.get(rightTableName)).children.add(root);
+                                (nodes.get(rightTableName)).children.add(root);
+                                (nodes.get(rightTableName)).connectingColumnNames.add(rightColumnName);
                                 root = newResultNode;
                             } else {
                                 newResultNode.setTableName(leftTableName);
                                 nodes.put(leftTableName, newResultNode);
-                                ((PartialResultNode) nodes.get(rightTableName)).children.add(newResultNode);
+                                (nodes.get(rightTableName)).children.add(newResultNode);
+                                (nodes.get(rightTableName)).connectingColumnNames.add(rightColumnName);
                             }
                             fkSet = true;
                             break;
@@ -229,11 +242,13 @@ public class JoinSelectQuery {
                                 newResultNode.setTableName(leftTableName);
                                 nodes.put(leftTableName, newResultNode);
                                 ((PartialResultNode) nodes.get(leftTableName)).children.add(root);
+                                (nodes.get(leftTableName)).connectingColumnNames.add(leftColumnName);
                                 root = newResultNode;
                             } else {
                                 newResultNode.setTableName(rightTableName);
                                 nodes.put(rightTableName, newResultNode);
                                 ((PartialResultNode) nodes.get(leftTableName)).children.add(newResultNode);
+                                (nodes.get(leftTableName)).connectingColumnNames.add(leftColumnName);
                             }
 
 
@@ -301,32 +316,40 @@ public class JoinSelectQuery {
                 nodes.get(consTable).concatConstraint(consColmun + " " + operator + " " + value);
             }
         }
-//        if (!XML.tableExists(query.tableName, Worker.currentlyWorking)) {
-//            throw new comm.ServerException("Error: table " + query.tableName + " does not exist");
-//        }
-//
-//        if (query.selectedColumns.size() == 1 && query.selectedColumns.get(0).equals("*")) {//handling wildcard
-//            query.selectedColumns.clear();
-//            for (Attribute attribute : XML.getTable(query.tableName, Worker.currentlyWorking).getTableStructure().getAttributeList()) {
-//                query.selectedColumns.add(attribute.getName());
-//            }
-//        }
-//
-//        for (String column : query.selectedColumns) {
-//            if (!XML.attributeExists(query.tableName, column, Worker.currentlyWorking)) {
-//                throw new comm.ServerException("Error: column " + column + " does not exist now, does it ? ");
-//            }
-//        }
 
+        //Handle projection
+        if (selectedColumns.size() == 1 && selectedColumns.get(0).equals("*")) {
+            for (String tableName : nodes.keySet()) {
+                for (Attribute attr : XML.getTable(tableName, Worker.currentlyWorking).getTableStructure().getAttributeList()) {
+                    nodes.get(tableName).selectedColumns.add(attr.getName());
+                }
+            }
+        } else {
+            for (String column : selectedColumns) {
+                if (column.split("\\.").length != 2) {
+                    throw new comm.ServerException("Error in column " + column + " please use absolute column name");
+                }
+                String tableName = column.split("\\.")[0];
+                String columnName = column.split("\\.")[1];
+
+                if (nodes.get(tableName) == null) {
+                    throw new comm.ServerException("Error in column " + column + " invalid table");
+                }
+                if (!XML.attributeExists(tableName, columnName, Worker.currentlyWorking)) {
+                    throw new comm.ServerException("Error in column " + column + " invalid column name");
+                }
+                nodes.get(tableName).selectedColumns.add(columnName);
+            }
+        }
     }
 
     private void hashedJoin(PartialResultNode referencer, PartialResultNode referenced) throws ServerException {
-        int indexSlot=-1;
+        int indexSlot = -1;
 
-        for(ForeignKey fk:XML.getTable(referencer.tableName,Worker.currentlyWorking).getForeignKeys().getForeignKeyList()){
-            if(fk.getRefTableName().equals(referenced.tableName)){
-                for(IndexFile index:XML.getTable(referencer.tableName,Worker.currentlyWorking).getIndexFiles().getIndexFiles()){
-                    if(index.getName().equals(fk.getName())){
+        for (ForeignKey fk : XML.getTable(referencer.tableName, Worker.currentlyWorking).getForeignKeys().getForeignKeyList()) {
+            if (fk.getRefTableName().equals(referenced.tableName)) {
+                for (IndexFile index : XML.getTable(referencer.tableName, Worker.currentlyWorking).getIndexFiles().getIndexFiles()) {
+                    if (index.getName().equals(fk.getName())) {
                         indexSlot = index.getIndexFileName();
                         break;
                     }
@@ -335,17 +358,17 @@ public class JoinSelectQuery {
             }
         }
 
-        if(indexSlot == -1){
-            throw new comm.ServerException("Error: there is no connection between "+referencer.tableName+" and "+referenced.tableName);
+        if (indexSlot == -1) {
+            throw new comm.ServerException("Error: there is no connection between " + referencer.tableName + " and " + referenced.tableName);
         }
 
         Set<Integer> eligibleIds = new TreeSet<>();
         RedisConnector connector = new RedisConnector();
         connector.connect();
-        for (Integer referencedKey:referenced.partialResult.getIDs()){
-            IDSource idSource = new IndexIDProvider(indexSlot,referencedKey.toString(),connector);
-            while(idSource.hasNext()){
-                eligibleIds.addAll(idSource.readNext().stream().map(a->Integer.parseInt(a)).collect(Collectors.toList()));
+        for (Integer referencedKey : referenced.partialResult.getIDs()) {
+            IDSource idSource = new IndexIDProvider(indexSlot, referencedKey.toString(), connector);
+            while (idSource.hasNext()) {
+                eligibleIds.addAll(idSource.readNext().stream().map(a -> Integer.parseInt(a)).collect(Collectors.toList()));
             }
         }
 
@@ -354,16 +377,106 @@ public class JoinSelectQuery {
     }
 
     public void joinAll(PartialResultNode node) throws ServerException {
-        if(node.children.isEmpty()){
+        if (node.children.isEmpty()) {
             return;
         }
         //first join the  children
-        for (PartialResultNode child:node.children){
+        for (PartialResultNode child : node.children) {
             joinAll(child);
         }
         //then do the join on the results
-        for (PartialResultNode child:node.children){
-            hashedJoin(node,child);
+        for (PartialResultNode child : node.children) {
+            hashedJoin(node, child);
         }
+    }
+
+    private ArrayList<String> getColumns(PartialResultNode node) {
+
+        ArrayList<String> result = node.selectedColumns;
+        result = result.stream().map(col->node.tableName+"."+col).collect(Collectors.toCollection(ArrayList::new));
+        for (PartialResultNode child : node.children) {
+            result.addAll(getColumns(child));
+        }
+        return result;
+    }
+    private void setConnectorToDefaultTable(PartialResultNode node) {
+        node.simpleQuery.getRedisConnection().select(node.partialResult.getSelectedTable().getSlotNumber());
+        for (PartialResultNode child : node.children) {
+            setConnectorToDefaultTable(child);
+        }
+    }
+    private ArrayList<String> getNodeValues(Integer pk, PartialResultNode node) {
+        if(node.rows.containsKey(pk))
+            return node.rows.get(pk);
+        ArrayList<String> result = new ArrayList<>();
+
+        for(String column:node.selectedColumns){
+            if(node.partialResult.getSelectedTable().getKey().getName().equals(column))
+            {
+                result.add(pk+"");
+            }else {
+                result.add(node.simpleQuery.getRedisConnection().getColumn(pk.toString(), column));
+            }
+        }
+        node.rows.put(pk,result);
+        return result;
+    }
+
+    private void appendToRow(Integer pk, PartialResultNode node, Row row) {
+
+        row.getValues().addAll(getNodeValues(pk, node));
+        Iterator<String> fkColumnNameIterator = node.connectingColumnNames.iterator();
+        for (PartialResultNode child : node.children) {
+            Integer referencedId = Integer.parseInt(node.simpleQuery.getRedisConnection().getColumn(pk.toString(),fkColumnNameIterator.next()));
+            appendToRow( referencedId, child,row);
+        }
+    }
+
+    public void writeResult(PrintWriter messageSender) throws ServerException {
+
+        messageSender.write("READY\n");
+        messageSender.flush();
+        Header header = new Header();
+        ArrayList<String> columns = getColumns(root);
+        header.setColumnCount(columns.size());
+        header.setColumnNames(columns);
+        header.setRowCount(root.partialResult.getIDs().size());
+        int pageNumber = (root.partialResult.getIDs().size() % numberOfRowsInPage == 0) ?
+                root.partialResult.getIDs().size() / numberOfRowsInPage
+                :
+                root.partialResult.getIDs().size() / numberOfRowsInPage + 1;
+        header.setPageNumber(pageNumber);
+        XmlMapper xmlMapper = new XmlMapper();
+        try {
+            messageSender.write(xmlMapper.writeValueAsString(header) + "\n");
+            messageSender.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new comm.ServerException("Error writing header to stream");
+        }
+
+        //get values page by page
+
+        Iterator<Integer> idIterator = root.partialResult.getIDs().iterator();
+        setConnectorToDefaultTable(root);//set every table's connection, to the corresponding table
+
+        for (int i = 0; i < pageNumber; i++) {
+            Page page = new Page();
+            page.setPageNumber(i);
+            for (int j = 0; j < numberOfRowsInPage && idIterator.hasNext(); j++) {
+                int currentID = idIterator.next();
+                Row row = new Row();
+                appendToRow(currentID, root, row);
+                page.getRows().add(row);
+            }
+            try {
+                messageSender.write(xmlMapper.writeValueAsString(page) + "\n");
+            } catch (IOException e) {
+                e.printStackTrace();
+                throw new comm.ServerException("Error writing page to stream");
+            }
+            messageSender.flush();
+        }
+
     }
 }

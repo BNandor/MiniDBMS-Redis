@@ -115,7 +115,8 @@ public class Worker extends Thread {
                                     JoinSelectQuery joinSelectQuery = new JoinSelectQuery(query);
                                     joinSelectQuery.runSubqueries();
                                     joinSelectQuery.joinAll(joinSelectQuery.root);
-                                    System.out.println(joinSelectQuery.root.partialResult);
+                                    joinSelectQuery.writeResult(messageSender);
+                                    //System.out.println(joinSelectQuery.root.partialResult);
                                 } else {
                                     SimpleSelectQuery simpleSelectQuery = new SimpleSelectQuery(query, messageSender);
                                     simpleSelectQuery.writeResult(simpleSelectQuery.select(simpleSelectQuery.buildQuery()));

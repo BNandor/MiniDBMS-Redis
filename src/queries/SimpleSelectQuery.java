@@ -26,7 +26,12 @@ import java.util.regex.Pattern;
 
 public class SimpleSelectQuery {
 
-    private static final int numberOfRowsInPage = 1000;
+    public static final int numberOfRowsInPage = 1000;
+
+    public RedisConnector getRedisConnection() {
+        return redisConnection;
+    }
+
     private RedisConnector redisConnection;
 
     private String errorMessage;
@@ -175,6 +180,11 @@ public class SimpleSelectQuery {
     public class PartialResult { //encapsulates a selection from one table only
 
         private Query query;
+
+        public Table getSelectedTable() {
+            return selectedTable;
+        }
+
         private Table selectedTable;
         private Set<Integer> resultKeys;
 
