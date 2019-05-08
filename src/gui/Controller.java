@@ -71,7 +71,7 @@ public class Controller implements Initializable {
         Scene scene = new Scene(loader.load());
         Stage stage = new Stage();
         stage.setScene(scene);
-        stage.setMinWidth(800);
+        stage.setMinWidth(1300);
         stage.setMinHeight(700);
         SelectController selectController = loader.getController();
 
@@ -152,7 +152,7 @@ public class Controller implements Initializable {
         Scene scene = new Scene(loader.load());
         Stage stage = new Stage();
         stage.setScene(scene);
-        stage.setMinWidth(1085);
+        stage.setMinWidth(1300);
         stage.setMinHeight(700);
         SelectController selectController = loader.getController();
 

@@ -24,7 +24,7 @@ public class Main extends Application {
 
         primaryStage.setTitle("MiniDBMS");
         primaryStage.setScene(new Scene(root));
-        primaryStage.setMinWidth(740);
+        primaryStage.setMinWidth(1200);
         primaryStage.setMinHeight(630);
         primaryStage.show();
 
