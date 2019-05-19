@@ -22,6 +22,7 @@ public class FTSIDProvider implements IDSource{
         params = new ScanParams();
         params.count(resultPerQuery);
         this.redisConnector = connector;
+        params.match("[0-9]*");
     }
 
     @Override

@@ -102,20 +102,21 @@ public class RedisConnector {//Lifecycle: start thread, create connection, {inse
     public ScanResult<String> setscan(String key,String cursor){
         return j.sscan(key,cursor);
     }
+    public ScanResult<String> setscanmatch(String key,String cursor,ScanParams param){return j.sscan(key,cursor,param);}
+    public Set<String> getSetMembers(String key){return j.smembers(key);}
     public void addToSet(String key, String value){
         j.sadd(key,value);
     }
     public void removeFromSet(String key, String value){
         j.srem(key,value);
     }
-
+    public Set<String> setIntersect(String key1, String key2){return j.sinter(key1,key2);}
     public void set(String key,String value){
         j.set(key,value);
     }
     public void setColumn(String key,String column,String value){
         j.hset(key,column,value);
     }
-
 
 
     public String get(String key){

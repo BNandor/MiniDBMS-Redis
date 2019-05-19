@@ -73,7 +73,7 @@ public class Worker extends Thread {
                     if (usingDatabase() && dbchanged) {
                         RDB.save();
                         dbchanged = false;
-                        System.out.println("REDIS SAVED");
+                        System.out.println("REDIS SAVING DISABLED");
                     }
                     Thread.sleep(2500);
                 } catch (InterruptedException e) {
@@ -114,12 +114,16 @@ public class Worker extends Thread {
                                 if (query.contains("JOIN") || query.contains("join")) {
                                     JoinSelectQuery joinSelectQuery = new JoinSelectQuery(query);
                                     joinSelectQuery.runSubqueries();
-                                    joinSelectQuery.joinAll(joinSelectQuery.root);
+                                    //joinSelectQuery.indexedjoinAll(joinSelectQuery.root);
+                                    joinSelectQuery.hashedjoinAll(joinSelectQuery.root);
                                     joinSelectQuery.writeResult(messageSender);
+                                    joinSelectQuery.cleanFinalResult();
                                     //System.out.println(joinSelectQuery.root.partialResult);
                                 } else {
                                     SimpleSelectQuery simpleSelectQuery = new SimpleSelectQuery(query, messageSender);
-                                    simpleSelectQuery.writeResult(simpleSelectQuery.select(simpleSelectQuery.buildQuery()));
+                                    SimpleSelectQuery.Query parsedquery = simpleSelectQuery.buildQuery();
+                                    SimpleSelectQuery.PartialResult result = simpleSelectQuery.new PartialResult(parsedquery);
+                                    simpleSelectQuery.writeResult(simpleSelectQuery.select(parsedquery,result));
                                 }
                             }
                             break;

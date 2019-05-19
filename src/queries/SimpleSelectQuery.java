@@ -22,6 +22,7 @@ import java.io.PrintWriter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 
 public class SimpleSelectQuery {
@@ -44,7 +45,7 @@ public class SimpleSelectQuery {
         this.errorMessage = success;
     }
 
-    class Query {
+    public class Query {
         public ArrayList<String> selectedColumns;
         public ArrayList<Pair<String, String>> constraints;
         public ArrayList<String> operators;
@@ -179,20 +180,28 @@ public class SimpleSelectQuery {
 
     public class PartialResult { //encapsulates a selection from one table only
 
-        private Query query;
+        protected Query query;
 
         public Table getSelectedTable() {
             return selectedTable;
         }
-
+        public void setSelectedTable(Table t) {
+            selectedTable = t;
+        }
         private Table selectedTable;
         private Set<Integer> resultKeys;
+        public PartialResult() {
 
+        }
         public PartialResult(Query query) {
             this.query = query;
             resultKeys = new TreeSet<>();
         }
-
+        public String hashFunction(String key,String val){
+            return null;
+        }
+        public RedisConnector getConnection(){return null;}
+        public void cleanupHashSets(){}
         public void add(String index) {
             resultKeys.add(Integer.parseInt(index));
         }
@@ -201,7 +210,70 @@ public class SimpleSelectQuery {
         public String toString() {
             return resultKeys + "";
         }
-        public Set<Integer> getIDs(){return resultKeys;}
+        public Set<Integer> getIDs(){ return resultKeys;}
+    }
+
+    public class HashedPartialResult extends PartialResult {
+        public static final int hashSlotNumber=10000;
+        public static final String resultSlot = "selectionresult";
+        private RedisConnector hashRedisConnection;
+        private ArrayList<String> keysToHashOn;
+
+        @Override
+        public RedisConnector getConnection() {
+            return hashRedisConnection;
+        }
+
+        @Override
+        public String hashFunction(String column, String val) {
+            return column+(Integer.parseInt(val)%hashSlotNumber);
+        }
+
+        public HashedPartialResult(Query query, ArrayList<String> keyToHash) {
+            this.query = query;
+            this.keysToHashOn = keyToHash;
+            hashRedisConnection = new RedisConnector();
+            hashRedisConnection.connect();
+        }
+
+        @Override
+        public void setSelectedTable(Table t) {
+            super.setSelectedTable(t);
+            hashRedisConnection.select(t.getSlotNumber());
+        }
+
+        @Override
+        public void add(String index) {
+            for (String key:keysToHashOn) {
+                String val = hashRedisConnection.getColumn(String.valueOf(index),key);
+                hashRedisConnection.addToSet(hashFunction(key,val), val+"@"+index);
+            }
+            hashRedisConnection.addToSet(resultSlot,index);
+        }
+
+        public Set<String> getIDs(String key,Integer hashslotId) {
+            String val = hashRedisConnection.getColumn(String.valueOf(hashslotId),key);
+            return hashRedisConnection.getSetMembers(hashFunction(key,val));
+        }
+
+        @Override
+        public Set<Integer> getIDs() {
+            return hashRedisConnection.getSetMembers(resultSlot).stream().map( a ->Integer.parseInt(a)).collect(Collectors.toCollection(HashSet<Integer>::new));
+        }
+
+        @Override
+        public void cleanupHashSets(){
+            for (String key:keysToHashOn) {
+                for(int i=0;i<hashSlotNumber;++i){
+                    hashRedisConnection.delkey(key+i);
+                }
+            }
+        }
+        @Override
+        protected void finalize() throws Throwable {
+            super.finalize();
+            hashRedisConnection.closeConnection();
+        }
     }
 
     public void writeResult(PartialResult partialResult) throws ServerException {
@@ -333,16 +405,16 @@ public class SimpleSelectQuery {
         throw new comm.ServerException("Internal error, db is in inconsistent state regarding index slots");
     }
 
-    public PartialResult select(Query query) throws comm.ServerException {
+    public PartialResult select(Query query,PartialResult result) throws comm.ServerException {
 
         System.out.println(query);
-        PartialResult result = new PartialResult(query);
 
         if (!XML.tableExists(query.tableName, Worker.currentlyWorking)) {
             throw new comm.ServerException("Error in select: table " + query.tableName + " does not exist in database " + Worker.currentlyWorking);
         }
         Table selectedTable = XML.getTable(query.tableName, Worker.currentlyWorking);
-        result.selectedTable = selectedTable;
+        result.setSelectedTable(selectedTable);
+
         for (Pair<String, String> p : query.constraints) {
             if (!XML.attributeExists(query.tableName, p.getKey(), Worker.currentlyWorking)) {
                 throw new comm.ServerException("Error in select: attribute " + p.getKey() + " does not exist");
@@ -438,7 +510,7 @@ public class SimpleSelectQuery {
             while (ids.hasNext()) {
                 for (String id : ids.readNext()) {
                     if (thisTablePKSelectable(query, id)) {
-                        result.resultKeys.add(Integer.parseInt(id));
+                        result.add(id);
                     }
                 }
             }
