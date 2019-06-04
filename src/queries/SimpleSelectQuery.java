@@ -211,6 +211,7 @@ public class SimpleSelectQuery {
             return resultKeys + "";
         }
         public Set<Integer> getIDs(){ return resultKeys;}
+        public Query getQuery(){return query;}
     }
 
     public class HashedPartialResult extends PartialResult {
@@ -395,7 +396,7 @@ public class SimpleSelectQuery {
         throw new comm.ServerException("Internal error, db is in inconsistent state regarding unique slots");
     }
 
-    private int getIndexSlot(Table selectedTable, String indexedAttributeName) throws ServerException {
+    public int getIndexSlot(Table selectedTable, String indexedAttributeName) throws ServerException {
 
         for (IndexFile index : selectedTable.getIndexFiles().getIndexFiles()) {
             if (index.getName().equals(indexedAttributeName)) {
@@ -439,7 +440,7 @@ public class SimpleSelectQuery {
                     }
                     return result;
                 } else {
-                    IDSource source = new FTSIDProvider(getUniqueSlot(selectedTable, p.getKey()),redisConnection);
+                    IDSource source = new FTSIDProvider(getUniqueSlot(selectedTable, p.getKey()),redisConnection,true);
                     Set<String> pres = new TreeSet<>();//TODO implement streaming here also
 
                     if (operator.equals(">")) {
@@ -506,7 +507,7 @@ public class SimpleSelectQuery {
         }
 
         if (equalityIndexed.size() == 0 && biggerIndexed.size() == 0 && smallerIndexed.size() == 0) {//in this case, there are no indexed columns, initiate FTS
-            IDSource ids = new FTSIDProvider(selectedTable.getSlotNumber(),redisConnection);
+            IDSource ids = new FTSIDProvider(selectedTable.getSlotNumber(),redisConnection,true);
             while (ids.hasNext()) {
                 for (String id : ids.readNext()) {
                     if (thisTablePKSelectable(query, id)) {
@@ -536,7 +537,7 @@ public class SimpleSelectQuery {
 
             if (biggerIndexed.size() > 0) {
                 for (Pair<String, String> p : biggerIndexed) {
-                    IDSource biggerIndexSource = new FTSIDProvider(getIndexSlot(selectedTable, p.getKey()),redisConnection);
+                    IDSource biggerIndexSource = new FTSIDProvider(getIndexSlot(selectedTable, p.getKey()),redisConnection,true);
                     Set<String> biggerSet = new HashSet<>();
                     while (biggerIndexSource.hasNext()) {
                         for (String indexed : biggerIndexSource.readNext()) {
@@ -557,7 +558,7 @@ public class SimpleSelectQuery {
             }
             if (smallerIndexed.size() > 0) {
                 for (Pair<String, String> p : smallerIndexed) {
-                    IDSource smallerIndexSource = new FTSIDProvider(getIndexSlot(selectedTable, p.getKey()),redisConnection);
+                    IDSource smallerIndexSource = new FTSIDProvider(getIndexSlot(selectedTable, p.getKey()),redisConnection,true);
                     Set<String> smallerSet = new HashSet<>();
                     while (smallerIndexSource.hasNext()) {
                         for (String indexed : smallerIndexSource.readNext()) {

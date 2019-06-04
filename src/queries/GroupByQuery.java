@@ -2,6 +2,11 @@ package queries;
 
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import comm.ServerException;
+import comm.Worker;
+import persistence.RedisConnector;
+import persistence.XML;
+import queries.misc.selectpipeline.FTSIDProvider;
+import queries.misc.selectpipeline.IndexIDProvider;
 import queries.misc.selectresultprotocol.Header;
 import queries.misc.selectresultprotocol.Page;
 import queries.misc.selectresultprotocol.Row;
@@ -64,11 +69,10 @@ public class GroupByQuery {
         System.out.println("New query " + selectAllQuery);
 
         selection(selectAllQuery);
-        initResultColumnMap();
 
         System.out.println("Finished selection");
         //printPage(allPage);
-        sortByGroupingColumn();
+        // sortByGroupingColumn();
 
         makeGroupingPage();
 
@@ -101,11 +105,11 @@ public class GroupByQuery {
             e.printStackTrace();
             throw new comm.ServerException("Error writing header to stream");
         }
-        int currentGroupPageindex=0;
+        int currentGroupPageindex = 0;
         for (int i = 0; i < pageNumber; i++) {
             Page page = new Page();
             page.setPageNumber(i);
-            for (int j = 0; j < numberOfRowsInPage && currentGroupPageindex<groupingPage.getRows().size(); j++) {
+            for (int j = 0; j < numberOfRowsInPage && currentGroupPageindex < groupingPage.getRows().size(); j++) {
                 page.getRows().add(groupingPage.getRows().get(currentGroupPageindex));
                 currentGroupPageindex++;
             }
@@ -199,6 +203,7 @@ public class GroupByQuery {
     }
 
     private void sortByGroupingColumn() throws ServerException {
+        initResultColumnMap();
         invalidColumn = false;
         allPage.getRows().sort(new RowComparator());
         if (invalidColumn) {
@@ -222,10 +227,10 @@ public class GroupByQuery {
                         }
                     }
                     return 1;
-                }catch (NumberFormatException ex){
+                } catch (NumberFormatException ex) {
                     return row1.getValues().get(getColumnIndex(groupingColumn)).
                             compareTo(
-                            row2.getValues().get(getColumnIndex(groupingColumn)));
+                                    row2.getValues().get(getColumnIndex(groupingColumn)));
                 }
             } catch (ServerException e) {
                 invalidColumn = false;
@@ -257,13 +262,75 @@ public class GroupByQuery {
                     joinSelectQuery.appendToRow(id, joinSelectQuery.getRoot(), row);
                     allPage.getRows().add(row);
                 }
-
+                sortByGroupingColumn();
             } else {
+
                 simpleSelectQuery = new SimpleSelectQuery(query);
                 SimpleSelectQuery.Query parsedquery = simpleSelectQuery.buildQuery();
                 SimpleSelectQuery.PartialResult result = simpleSelectQuery.new PartialResult(parsedquery);
-                simpleSelectQuery.select(parsedquery, result);
-                idIterator = result.getIDs().iterator();
+
+                if (XML.hasIndex(parsedquery.tableName, groupingColumn, Worker.currentlyWorking)
+                        && (!query.contains("WHERE") && !query.contains("where"))) {//we can apply indexing
+                    resultColumns = result.getQuery().selectedColumns;
+
+                    RedisConnector pkconnection = new RedisConnector();
+                    pkconnection.connect();
+                    RedisConnector pkidconnection = new RedisConnector();
+                    pkidconnection.connect();
+                    RedisConnector simpleconnection = new RedisConnector();
+                    simpleconnection.connect();
+
+                    simpleconnection.select(XML.getTable(parsedquery.tableName,Worker.currentlyWorking).getSlotNumber());
+
+                    int indexSlot = simpleSelectQuery.getIndexSlot(XML.getTable(parsedquery.tableName,Worker.currentlyWorking),groupingColumn);
+                    FTSIDProvider indexPkProvider = new FTSIDProvider(indexSlot,pkconnection,false);
+                    System.out.println(indexSlot);
+                    while(indexPkProvider.hasNext()){//for all values
+
+                        for(String groupColumnValue:indexPkProvider.readNext()) {
+                            IndexIDProvider indexIDProvider = new IndexIDProvider(indexSlot,groupColumnValue,pkidconnection);
+                            while(indexIDProvider.hasNext()){
+                                for(String id:indexIDProvider.readNext()){
+                                    Row row = new Row();
+                                    for (String column : result.getQuery().selectedColumns) {
+                                        if (column.equals(XML.getTable(parsedquery.tableName,Worker.currentlyWorking).getKey().getName())) {
+                                            row.getValues().add(String.valueOf(id));
+                                        } else {
+                                            row.getValues().add(simpleconnection.getColumn(id + "", column));
+                                        }
+                                    }
+                                    allPage.getRows().add(row);
+                                }
+                            }
+                        }
+                    }
+                    pkconnection.closeConnection();
+                    pkidconnection.closeConnection();
+                    simpleconnection.closeConnection();
+                    initResultColumnMap();
+                } else {
+                    simpleSelectQuery.select(parsedquery, result);
+                    idIterator = result.getIDs().iterator();
+                    int id;
+                    resultColumns = result.getQuery().selectedColumns;
+                    RedisConnector connection = new RedisConnector();
+                    connection.connect();
+                    connection.select(result.getSelectedTable().getSlotNumber());
+                    while (idIterator.hasNext()) {
+                        id = idIterator.next();
+                        Row row = new Row();
+                        for (String column : result.query.selectedColumns) {
+                            if (column.equals(result.getSelectedTable().getKey().getName())) {
+                                row.getValues().add(String.valueOf(id));
+                            } else {
+                                row.getValues().add(connection.getColumn(id + "", column));
+                            }
+                        }
+                        allPage.getRows().add(row);
+                    }
+                    connection.closeConnection();
+                    sortByGroupingColumn();
+                }
             }
         } catch (comm.ServerException ex) {
             System.out.println(ex.getMessage());

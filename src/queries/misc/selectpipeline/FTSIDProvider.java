@@ -15,14 +15,15 @@ public class FTSIDProvider implements IDSource{
     private boolean readAll;
     private RedisConnector redisConnector;
 
-    public FTSIDProvider(int slot,RedisConnector connector) {
+    public FTSIDProvider(int slot,RedisConnector connector,boolean onlyNumbers) {
         this.tableSlot = slot;
         cursor = "0";
         readAll = false;
         params = new ScanParams();
         params.count(resultPerQuery);
         this.redisConnector = connector;
-        params.match("[0-9]*");
+        if(onlyNumbers)
+            params.match("[0-9]*");
     }
 
     @Override
