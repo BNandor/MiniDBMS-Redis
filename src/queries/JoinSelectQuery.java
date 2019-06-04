@@ -27,6 +27,10 @@ public class JoinSelectQuery {
     private String query;
     private Map<String, PartialResultNode> nodes;
 
+    public PartialResultNode getRoot() {
+        return root;
+    }
+
     public PartialResultNode root;
     private static final int numberOfRowsInPage = SimpleSelectQuery.numberOfRowsInPage;
 
@@ -131,8 +135,8 @@ public class JoinSelectQuery {
 
     public JoinSelectQuery(String query) throws comm.ServerException {
         this.query = query;
-        root = new HashedPartialResultNode();
-        //root = new PartialResultNode();
+        //root = new HashedPartialResultNode();
+        root = new PartialResultNode();
         nodes = new HashMap<>();
         buildGraph(query);
     }
@@ -478,7 +482,7 @@ public class JoinSelectQuery {
         node.partialResult.cleanupHashSets();
     }
 
-    private ArrayList<String> getColumns(PartialResultNode node) {
+    public ArrayList<String> getColumns(PartialResultNode node) {
 
         ArrayList<String> result = node.selectedColumns;
         result = result.stream().map(col -> node.tableName + "." + col).collect(Collectors.toCollection(ArrayList::new));
@@ -488,7 +492,7 @@ public class JoinSelectQuery {
         return result;
     }
 
-    private void setConnectorToDefaultTable(PartialResultNode node) {
+    public void setConnectorToDefaultTable(PartialResultNode node) {
         node.simpleQuery.getRedisConnection().select(node.partialResult.getSelectedTable().getSlotNumber());
         for (PartialResultNode child : node.children) {
             setConnectorToDefaultTable(child);
@@ -511,7 +515,7 @@ public class JoinSelectQuery {
         return result;
     }
 
-    private void appendToRow(Integer pk, PartialResultNode node, Row row) {
+    public void appendToRow(Integer pk, PartialResultNode node, Row row) {
 
         row.getValues().addAll(getNodeValues(pk, node));
         Iterator<String> fkColumnNameIterator = node.connectingColumnNames.iterator();

@@ -2,10 +2,7 @@ package comm;
 
 import persistence.RedisConnector;
 import persistence.XML;
-import queries.DeleteQuery;
-import queries.InsertQuery;
-import queries.JoinSelectQuery;
-import queries.SimpleSelectQuery;
+import queries.*;
 import queries.misc.ConstraintChecker;
 import queries.misc.CreateIndex;
 import struct.Database;
@@ -111,19 +108,25 @@ public class Worker extends Thread {
                                 if (!usingDatabase()) {
                                     throw new comm.ServerException("Please USE a database");
                                 }
-                                if (query.contains("JOIN") || query.contains("join")) {
-                                    JoinSelectQuery joinSelectQuery = new JoinSelectQuery(query);
-                                    joinSelectQuery.runSubqueries();
-                                    //joinSelectQuery.indexedjoinAll(joinSelectQuery.root);
-                                    joinSelectQuery.hashedjoinAll(joinSelectQuery.root);
-                                    joinSelectQuery.writeResult(messageSender);
-                                    joinSelectQuery.cleanFinalResult();
-                                    //System.out.println(joinSelectQuery.root.partialResult);
-                                } else {
-                                    SimpleSelectQuery simpleSelectQuery = new SimpleSelectQuery(query, messageSender);
-                                    SimpleSelectQuery.Query parsedquery = simpleSelectQuery.buildQuery();
-                                    SimpleSelectQuery.PartialResult result = simpleSelectQuery.new PartialResult(parsedquery);
-                                    simpleSelectQuery.writeResult(simpleSelectQuery.select(parsedquery,result));
+                                if(!query.contains("GROUP BY") &&  !query.contains("group by")) {
+                                    if (query.contains("JOIN") || query.contains("join")) {
+                                        JoinSelectQuery joinSelectQuery = new JoinSelectQuery(query);
+                                        joinSelectQuery.runSubqueries();
+                                        joinSelectQuery.indexedjoinAll(joinSelectQuery.root);
+                                        //joinSelectQuery.hashedjoinAll(joinSelectQuery.root);
+                                        joinSelectQuery.writeResult(messageSender);
+                                        joinSelectQuery.cleanFinalResult();
+                                        //System.out.println(joinSelectQuery.root.partialResult);
+                                    } else {
+                                        SimpleSelectQuery simpleSelectQuery = new SimpleSelectQuery(query, messageSender);
+                                        SimpleSelectQuery.Query parsedquery = simpleSelectQuery.buildQuery();
+                                        SimpleSelectQuery.PartialResult result = simpleSelectQuery.new PartialResult(parsedquery);
+                                        simpleSelectQuery.writeResult(simpleSelectQuery.select(parsedquery, result));
+                                    }
+
+                                }else{
+                                    GroupByQuery gquery = new GroupByQuery(query);
+                                    gquery.writeResult(messageSender);
                                 }
                             }
                             break;
