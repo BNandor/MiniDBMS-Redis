@@ -35,7 +35,7 @@ public class GroupByQuery {
     Page groupingPage;
 
     class accumRelationship {
-        public accumRelationship(String column, String operator, int value) {
+        public accumRelationship(String column, String operator, Double value) {
             this.column = column;
             this.operator = operator;
             this.value = value;
@@ -43,7 +43,7 @@ public class GroupByQuery {
 
         private String column;
         private String operator;
-        private int value;
+        private Double value;
 
         @Override
         public String toString() {
@@ -68,13 +68,13 @@ public class GroupByQuery {
         System.out.println(havingConditions);
         System.out.println("New query " + selectAllQuery);
 
-        selection(selectAllQuery);
+         selection(selectAllQuery);
 
         System.out.println("Finished selection");
         //printPage(allPage);
         // sortByGroupingColumn();
 
-        makeGroupingPage();
+         makeGroupingPage();
 
     }
 
@@ -168,7 +168,23 @@ public class GroupByQuery {
         }
         return 0;
     }
-
+    private boolean havingOk(Double havingvalue,Double currentValue,String op) throws ServerException {
+        switch (op){
+            case "=":return havingvalue == currentValue;
+            case ">":return havingvalue < currentValue;
+            case "<":return havingvalue > currentValue;
+        }
+        throw new comm.ServerException("Invalid operation"+op);
+    }
+    private accumRelationship getColumnConditionInHaving(ArrayList<accumRelationship> resultConditions,String column){
+        for (accumRelationship rel:resultConditions){
+            if(rel.column.equals(column)){
+                return rel;
+            }
+            System.out.println(rel.column+"!="+column);
+        }
+        return null;
+    }
     private void makeGroupingPage() throws ServerException {
         int currentindex = 0;
 
@@ -184,14 +200,23 @@ public class GroupByQuery {
 
             Row resultRow = new Row();
             resultRow.getValues().add(subPage.getRows().get(0).getValues().get(getColumnIndex(groupingColumn)));
+            boolean havingClear=true;
             for (String operatingColumn : selectedColumns) {
                 if (!operatingColumn.equals(groupingColumn)) {
                     double operationResult = operation(subPage, operatingColumn);
+                    accumRelationship relationship = getColumnConditionInHaving(havingConditions,operatingColumn);
 
-                    resultRow.getValues().add(operationResult + "");
+                    if(relationship==null || havingOk(relationship.value,operationResult,relationship.operator)) {
+                        resultRow.getValues().add(operationResult + "");
+                    }else{
+                        havingClear=false;
+                        break;
+                    }
                 }
             }
-            groupingPage.getRows().add(resultRow);
+            if(havingClear) {
+                groupingPage.getRows().add(resultRow);
+            }
             ++currentindex;
         }
     }
@@ -217,12 +242,12 @@ public class GroupByQuery {
         public int compare(Row row1, Row row2) {
             try {
                 try {
-                    if (Integer.parseInt(row1.getValues().get(getColumnIndex(groupingColumn))) <
-                            Integer.parseInt(row2.getValues().get(getColumnIndex(groupingColumn)))) {
+                    if (Double.parseDouble(row1.getValues().get(getColumnIndex(groupingColumn))) <
+                            Double.parseDouble(row2.getValues().get(getColumnIndex(groupingColumn)))) {
                         return -1;
                     } else {
-                        if (Integer.parseInt(row1.getValues().get(getColumnIndex(groupingColumn))) ==
-                                Integer.parseInt(row2.getValues().get(getColumnIndex(groupingColumn)))) {
+                        if (Double.parseDouble(row1.getValues().get(getColumnIndex(groupingColumn))) ==
+                                Double.parseDouble(row2.getValues().get(getColumnIndex(groupingColumn)))) {
                             return 0;
                         }
                     }
@@ -284,7 +309,6 @@ public class GroupByQuery {
 
                     int indexSlot = simpleSelectQuery.getIndexSlot(XML.getTable(parsedquery.tableName,Worker.currentlyWorking),groupingColumn);
                     FTSIDProvider indexPkProvider = new FTSIDProvider(indexSlot,pkconnection,false);
-                    System.out.println(indexSlot);
                     while(indexPkProvider.hasNext()){//for all values
 
                         for(String groupColumnValue:indexPkProvider.readNext()) {
@@ -424,9 +448,9 @@ public class GroupByQuery {
     private void parseHavingConditions(String[] havingConstraints) throws ServerException {
         for (int i = 0; i < havingConstraints.length; i++) {
             String constraint = havingConstraints[i];
-            String equalityPattern = " *([A-Za-z0-9()]+) *= *(.+) *";
-            String biggerPattern = " *([A-Za-z0-9()]+) *> *(.+) *";
-            String smallerPattern = " *([A-Za-z0-9()]+) *< *(.+) *";
+            String equalityPattern = " *([A-Za-z0-9().]+) *= *(.+) *";
+            String biggerPattern = " *([A-Za-z0-9().]+) *> *(.+) *";
+            String smallerPattern = " *([A-Za-z0-9().]+) *< *(.+) *";
 
             Pattern pattern = Pattern.compile(equalityPattern);
             Matcher matcher = pattern.matcher(constraint);
@@ -436,21 +460,21 @@ public class GroupByQuery {
             if (matcher.find()) {
                 column = matcher.group(1).trim();
                 value = matcher.group(2).trim();
-                havingConditions.add(new accumRelationship(column, "=", Integer.parseInt(value)));
+                havingConditions.add(new accumRelationship(column, "=", Double.parseDouble(value)));
             } else {
                 pattern = Pattern.compile(biggerPattern);
                 matcher = pattern.matcher(constraint);
                 if (matcher.find()) {
                     column = matcher.group(1).trim();
                     value = matcher.group(2).trim();
-                    havingConditions.add(new accumRelationship(column, ">", Integer.parseInt(value)));
+                    havingConditions.add(new accumRelationship(column, ">", Double.parseDouble(value)));
                 } else {
                     pattern = Pattern.compile(smallerPattern);
                     matcher = pattern.matcher(constraint);
                     if (matcher.find()) {
                         column = matcher.group(1).trim();
                         value = matcher.group(2).trim();
-                        havingConditions.add(new accumRelationship(column, "<", Integer.parseInt(value)));
+                        havingConditions.add(new accumRelationship(column, "<", Double.parseDouble(value)));
                     } else {
                         throw new comm.ServerException("Error building query: invalid opertaor in " + constraint);
                     }
