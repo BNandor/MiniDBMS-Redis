@@ -16,7 +16,7 @@ public class Tables {
     }
 
     public List<Table> getTableList() {
-        if (tableList == null){
+        if (tableList == null) {
             return Collections.emptyList();
         }
         return tableList;
@@ -33,8 +33,9 @@ public class Tables {
 
     @Override
     public String toString() {
-        return tableList+"";
+        return tableList + "";
     }
+
     public TreeItem<String> visit() {
         TreeItem<String> root = new TreeItem<>("Tables");
 

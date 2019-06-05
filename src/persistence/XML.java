@@ -5,7 +5,6 @@ import comm.Worker;
 import struct.*;
 
 import java.io.*;
-import java.rmi.ServerException;
 import java.util.ArrayList;
 
 import static java.util.stream.Collectors.toList;
@@ -152,6 +151,7 @@ public class XML {
         }
         return false;
     }
+
     public static boolean attributeIsPrimaryKey(String tableName, String attributeName, int dbindex) {
         try {
             for (Table t : getDatabasesInstance().getDatabaseList().get(dbindex).getTables().getTableList()) {
@@ -165,13 +165,13 @@ public class XML {
         return false;
     }
 
-    public static  boolean hasIndex(String tableName, String attributeName,int dbindex){
+    public static boolean hasIndex(String tableName, String attributeName, int dbindex) {
         try {
             for (Table t : getDatabasesInstance().getDatabaseList().get(dbindex).getTables().getTableList()) {
                 if (t.getTableName() != null && t.getTableName().equals(tableName)) {
-                    if(t.getIndexFiles()!=null){
-                        for(IndexFile indexFile:t.getIndexFiles().getIndexFiles()){
-                            if(indexFile.getName().equals(attributeName))return true;
+                    if (t.getIndexFiles() != null) {
+                        for (IndexFile indexFile : t.getIndexFiles().getIndexFiles()) {
+                            if (indexFile.getName().equals(attributeName)) return true;
                         }
                     }
                     break;

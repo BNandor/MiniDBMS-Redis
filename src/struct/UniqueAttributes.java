@@ -30,6 +30,6 @@ public class UniqueAttributes {
 
     @Override
     public String toString() {
-        return uniqueList+"";
+        return uniqueList + "";
     }
 }

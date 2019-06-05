@@ -8,9 +8,11 @@ public class Database {
         //this.databaseName = databaseName;
         this.tables = new Tables();
     }
+
     @JsonProperty("databaseName")
     private String databaseName;
     private Tables tables;
+
     public String getDatabaseName() {
         return databaseName;
     }
@@ -21,10 +23,10 @@ public class Database {
 
     public Tables getTables() {
 
-        if(tables == null){
+        if (tables == null) {
             tables = new Tables();
         }
-            return tables;
+        return tables;
     }
 
     public void setTables(Tables tables) {
@@ -33,8 +35,9 @@ public class Database {
 
     @Override
     public String toString() {
-        return "Database: "+ databaseName+" has \n"+tables+"\n";
+        return "Database: " + databaseName + " has \n" + tables + "\n";
     }
+
     public TreeItem<String> visit() {
         TreeItem<String> root = new TreeItem<>(databaseName);
         if (tables == null) {

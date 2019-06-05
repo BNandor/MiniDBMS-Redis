@@ -29,6 +29,6 @@ public class IndexFiles {
 
     @Override
     public String toString() {
-        return indexFiles+"";
+        return indexFiles + "";
     }
 }

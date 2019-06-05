@@ -4,7 +4,6 @@ import comm.Worker;
 import persistence.XML;
 import struct.*;
 
-import java.lang.invoke.WrongMethodTypeException;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 
@@ -78,7 +77,7 @@ public class InsertQuery {
                         if (table.getIndexFiles() != null) {
                             for (IndexFile index : table.getIndexFiles().getIndexFiles()) {
                                 if (index.getName().equals(attr.getName())) {
-                                    indexEntries.add(new IndexEntry(index.getIndexFileName(),element));
+                                    indexEntries.add(new IndexEntry(index.getIndexFileName(), element));
                                     break;
                                 }
                             }
@@ -97,7 +96,7 @@ public class InsertQuery {
             Worker.RDB.set(entry.key, primaryKey);
         }
         //for every column that has an index file, that is not unique, foreoogn key
-        for(IndexEntry entry:indexEntries){
+        for (IndexEntry entry : indexEntries) {
             Worker.RDB.select(entry.slot);
             Worker.RDB.addToSet(entry.key, primaryKey);
         }

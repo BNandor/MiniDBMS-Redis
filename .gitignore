@@ -2,7 +2,6 @@
 redis-5.0.3/
 out/
 DBMS/
-src/Main.java
 
 # Compiled class file
 *.class

@@ -108,7 +108,7 @@ public class Worker extends Thread {
                                 if (!usingDatabase()) {
                                     throw new comm.ServerException("Please USE a database");
                                 }
-                                if(!query.contains("GROUP BY") &&  !query.contains("group by")) {
+                                if (!query.contains("GROUP BY") && !query.contains("group by")) {
                                     if (query.contains("JOIN") || query.contains("join")) {
                                         JoinSelectQuery joinSelectQuery = new JoinSelectQuery(query);
                                         joinSelectQuery.runSubqueries();
@@ -124,7 +124,7 @@ public class Worker extends Thread {
                                         simpleSelectQuery.writeResult(simpleSelectQuery.select(parsedquery, result));
                                     }
 
-                                }else{
+                                } else {
                                     GroupByQuery gquery = new GroupByQuery(query);
                                     gquery.writeResult(messageSender);
                                 }

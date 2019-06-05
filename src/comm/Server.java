@@ -39,7 +39,7 @@ public class Server extends Thread {
             System.out.println("Server:waiting for job");
             String job;
             while ((job = messageReader.readLine()) != null) {
-                System.out.println("Server:got job from client,pushing to worker:"+job);
+                System.out.println("Server:got job from client,pushing to worker:" + job);
                 worker.addJob(job);
             }
 

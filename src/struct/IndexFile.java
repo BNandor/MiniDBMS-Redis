@@ -2,7 +2,10 @@ package struct;
 
 public class IndexFile {
     private int indexFileName;
-    public IndexFile(){}
+
+    public IndexFile() {
+    }
+
     public IndexFile(int indexFileName, String name) {
         this.indexFileName = indexFileName;
         this.name = name;

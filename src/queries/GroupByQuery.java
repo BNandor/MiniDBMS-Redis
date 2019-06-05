@@ -68,13 +68,13 @@ public class GroupByQuery {
         System.out.println(havingConditions);
         System.out.println("New query " + selectAllQuery);
 
-         selection(selectAllQuery);
+        selection(selectAllQuery);
 
         System.out.println("Finished selection");
         //printPage(allPage);
         // sortByGroupingColumn();
 
-         makeGroupingPage();
+        makeGroupingPage();
 
     }
 
@@ -168,23 +168,29 @@ public class GroupByQuery {
         }
         return 0;
     }
-    private boolean havingOk(Double havingvalue,Double currentValue,String op) throws ServerException {
-        switch (op){
-            case "=":return havingvalue == currentValue;
-            case ">":return havingvalue < currentValue;
-            case "<":return havingvalue > currentValue;
+
+    private boolean havingOk(Double havingvalue, Double currentValue, String op) throws ServerException {
+        switch (op) {
+            case "=":
+                return havingvalue == currentValue;
+            case ">":
+                return havingvalue < currentValue;
+            case "<":
+                return havingvalue > currentValue;
         }
-        throw new comm.ServerException("Invalid operation"+op);
+        throw new comm.ServerException("Invalid operation" + op);
     }
-    private accumRelationship getColumnConditionInHaving(ArrayList<accumRelationship> resultConditions,String column){
-        for (accumRelationship rel:resultConditions){
-            if(rel.column.equals(column)){
+
+    private accumRelationship getColumnConditionInHaving(ArrayList<accumRelationship> resultConditions, String column) {
+        for (accumRelationship rel : resultConditions) {
+            if (rel.column.equals(column)) {
                 return rel;
             }
-            System.out.println(rel.column+"!="+column);
+            System.out.println(rel.column + "!=" + column);
         }
         return null;
     }
+
     private void makeGroupingPage() throws ServerException {
         int currentindex = 0;
 
@@ -200,21 +206,21 @@ public class GroupByQuery {
 
             Row resultRow = new Row();
             resultRow.getValues().add(subPage.getRows().get(0).getValues().get(getColumnIndex(groupingColumn)));
-            boolean havingClear=true;
+            boolean havingClear = true;
             for (String operatingColumn : selectedColumns) {
                 if (!operatingColumn.equals(groupingColumn)) {
                     double operationResult = operation(subPage, operatingColumn);
-                    accumRelationship relationship = getColumnConditionInHaving(havingConditions,operatingColumn);
+                    accumRelationship relationship = getColumnConditionInHaving(havingConditions, operatingColumn);
 
-                    if(relationship==null || havingOk(relationship.value,operationResult,relationship.operator)) {
+                    if (relationship == null || havingOk(relationship.value, operationResult, relationship.operator)) {
                         resultRow.getValues().add(operationResult + "");
-                    }else{
-                        havingClear=false;
+                    } else {
+                        havingClear = false;
                         break;
                     }
                 }
             }
-            if(havingClear) {
+            if (havingClear) {
                 groupingPage.getRows().add(resultRow);
             }
             ++currentindex;
@@ -305,19 +311,19 @@ public class GroupByQuery {
                     RedisConnector simpleconnection = new RedisConnector();
                     simpleconnection.connect();
 
-                    simpleconnection.select(XML.getTable(parsedquery.tableName,Worker.currentlyWorking).getSlotNumber());
+                    simpleconnection.select(XML.getTable(parsedquery.tableName, Worker.currentlyWorking).getSlotNumber());
 
-                    int indexSlot = simpleSelectQuery.getIndexSlot(XML.getTable(parsedquery.tableName,Worker.currentlyWorking),groupingColumn);
-                    FTSIDProvider indexPkProvider = new FTSIDProvider(indexSlot,pkconnection,false);
-                    while(indexPkProvider.hasNext()){//for all values
+                    int indexSlot = simpleSelectQuery.getIndexSlot(XML.getTable(parsedquery.tableName, Worker.currentlyWorking), groupingColumn);
+                    FTSIDProvider indexPkProvider = new FTSIDProvider(indexSlot, pkconnection, false);
+                    while (indexPkProvider.hasNext()) {//for all values
 
-                        for(String groupColumnValue:indexPkProvider.readNext()) {
-                            IndexIDProvider indexIDProvider = new IndexIDProvider(indexSlot,groupColumnValue,pkidconnection);
-                            while(indexIDProvider.hasNext()){
-                                for(String id:indexIDProvider.readNext()){
+                        for (String groupColumnValue : indexPkProvider.readNext()) {
+                            IndexIDProvider indexIDProvider = new IndexIDProvider(indexSlot, groupColumnValue, pkidconnection);
+                            while (indexIDProvider.hasNext()) {
+                                for (String id : indexIDProvider.readNext()) {
                                     Row row = new Row();
                                     for (String column : result.getQuery().selectedColumns) {
-                                        if (column.equals(XML.getTable(parsedquery.tableName,Worker.currentlyWorking).getKey().getName())) {
+                                        if (column.equals(XML.getTable(parsedquery.tableName, Worker.currentlyWorking).getKey().getName())) {
                                             row.getValues().add(String.valueOf(id));
                                         } else {
                                             row.getValues().add(simpleconnection.getColumn(id + "", column));

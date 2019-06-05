@@ -29,6 +29,6 @@ public class Structure {
 
     @Override
     public String toString() {
-        return attributeList+"";
+        return attributeList + "";
     }
 }

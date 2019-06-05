@@ -1,7 +1,9 @@
 package struct;
 
 public class PrimaryKey {
-    public PrimaryKey(){}
+    public PrimaryKey() {
+    }
+
     public PrimaryKey(String name) {
         this.name = name;
     }

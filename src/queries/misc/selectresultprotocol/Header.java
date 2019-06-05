@@ -5,9 +5,9 @@ import java.util.ArrayList;
 
 public class Header implements Serializable {
 
-    private  int rowCount;
-    private  int columnCount;
-    private  int pageNumber;
+    private int rowCount;
+    private int columnCount;
+    private int pageNumber;
 
     private ArrayList<String> columnNames;
 

@@ -31,14 +31,16 @@ public class Databases {
     public Databases() {
         this.databaseList = new ArrayList<>();
     }
+
     public Databases(List<Database> dbs) {
         this.databaseList = dbs;
     }
 
     @Override
     public String toString() {
-        return "Databases :\n"+databaseList;
+        return "Databases :\n" + databaseList;
     }
+
     public TreeItem<String> visit() {
         TreeItem<String> root = new TreeItem<>("Databases");
 

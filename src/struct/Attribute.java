@@ -6,7 +6,9 @@ public class Attribute {
     private int length;
     private int isnull;
 
-    public Attribute(){}
+    public Attribute() {
+    }
+
     public Attribute(String name, String type, int length, int isnull) {
         this.name = name;
         this.type = type;
@@ -48,6 +50,6 @@ public class Attribute {
 
     @Override
     public String toString() {
-        return name+":"+type+":"+length+":"+isnull;
+        return name + ":" + type + ":" + length + ":" + isnull;
     }
 }

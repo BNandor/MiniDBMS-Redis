@@ -30,6 +30,6 @@ public class ForeignKeys {
 
     @Override
     public String toString() {
-        return foreignKeyList+"";
+        return foreignKeyList + "";
     }
 }

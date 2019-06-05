@@ -46,7 +46,7 @@ public class TableBuilder {
                     }
                     //TODO check if referenced attribute is of type id, or at least unique
                     if (!XML.attributeExists(refTable, refAttr, Worker.currentlyWorking)) {
-                        throw new comm.ServerException("Referenced attribute does not exist " + refTable+"."+refAttr);
+                        throw new comm.ServerException("Referenced attribute does not exist " + refTable + "." + refAttr);
                     }
 
                     ForeignKey fk = new ForeignKey(attr.getName(), refTable, refAttr);
@@ -87,7 +87,7 @@ public class TableBuilder {
         for (ForeignKey fk : fks.getForeignKeyList()) {
             if ((!XML.attributeIsPrimaryKey(fk.getRefTableName(), fk.getRefTableAttributeName(), Worker.currentlyWorking)
                     //&& !XML.attributeIsUnique(fk.getRefTableName(), fk.getRefTableAttributeName(), Worker.currentlyWorking)
-                    ) ||
+            ) ||
                     XML.attributeIsForeignKey(fk.getRefTableName(), fk.getRefTableAttributeName(), Worker.currentlyWorking)) {
                 throw new comm.ServerException("Error creating table " + name + " , referenced key " + fk.getRefTableName() + "." + fk.getRefTableAttributeName() + " is either not unique,primary key, or it is a foreign key");
             }

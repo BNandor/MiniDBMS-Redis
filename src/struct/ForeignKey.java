@@ -2,7 +2,8 @@ package struct;
 
 public class ForeignKey {
 
-    public ForeignKey(){}
+    public ForeignKey() {
+    }
 
     public ForeignKey(String name, String refTableName, String refTableAttributeName) {
         this.name = name;
@@ -40,6 +41,6 @@ public class ForeignKey {
 
     @Override
     public String toString() {
-        return name+" that references "+refTableAttributeName+" in  table "+ refTableName;
+        return name + " that references " + refTableAttributeName + " in  table " + refTableName;
     }
 }

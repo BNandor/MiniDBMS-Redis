@@ -185,23 +185,34 @@ public class SimpleSelectQuery {
         public Table getSelectedTable() {
             return selectedTable;
         }
+
         public void setSelectedTable(Table t) {
             selectedTable = t;
         }
+
         private Table selectedTable;
         private Set<Integer> resultKeys;
+
         public PartialResult() {
 
         }
+
         public PartialResult(Query query) {
             this.query = query;
             resultKeys = new TreeSet<>();
         }
-        public String hashFunction(String key,String val){
+
+        public String hashFunction(String key, String val) {
             return null;
         }
-        public RedisConnector getConnection(){return null;}
-        public void cleanupHashSets(){}
+
+        public RedisConnector getConnection() {
+            return null;
+        }
+
+        public void cleanupHashSets() {
+        }
+
         public void add(String index) {
             resultKeys.add(Integer.parseInt(index));
         }
@@ -210,12 +221,18 @@ public class SimpleSelectQuery {
         public String toString() {
             return resultKeys + "";
         }
-        public Set<Integer> getIDs(){ return resultKeys;}
-        public Query getQuery(){return query;}
+
+        public Set<Integer> getIDs() {
+            return resultKeys;
+        }
+
+        public Query getQuery() {
+            return query;
+        }
     }
 
     public class HashedPartialResult extends PartialResult {
-        public static final int hashSlotNumber=10000;
+        public static final int hashSlotNumber = 10000;
         public static final String resultSlot = "selectionresult";
         private RedisConnector hashRedisConnection;
         private ArrayList<String> keysToHashOn;
@@ -227,7 +244,7 @@ public class SimpleSelectQuery {
 
         @Override
         public String hashFunction(String column, String val) {
-            return column+(Integer.parseInt(val)%hashSlotNumber);
+            return column + (Integer.parseInt(val) % hashSlotNumber);
         }
 
         public HashedPartialResult(Query query, ArrayList<String> keyToHash) {
@@ -245,31 +262,32 @@ public class SimpleSelectQuery {
 
         @Override
         public void add(String index) {
-            for (String key:keysToHashOn) {
-                String val = hashRedisConnection.getColumn(String.valueOf(index),key);
-                hashRedisConnection.addToSet(hashFunction(key,val), val+"@"+index);
+            for (String key : keysToHashOn) {
+                String val = hashRedisConnection.getColumn(String.valueOf(index), key);
+                hashRedisConnection.addToSet(hashFunction(key, val), val + "@" + index);
             }
-            hashRedisConnection.addToSet(resultSlot,index);
+            hashRedisConnection.addToSet(resultSlot, index);
         }
 
-        public Set<String> getIDs(String key,Integer hashslotId) {
-            String val = hashRedisConnection.getColumn(String.valueOf(hashslotId),key);
-            return hashRedisConnection.getSetMembers(hashFunction(key,val));
+        public Set<String> getIDs(String key, Integer hashslotId) {
+            String val = hashRedisConnection.getColumn(String.valueOf(hashslotId), key);
+            return hashRedisConnection.getSetMembers(hashFunction(key, val));
         }
 
         @Override
         public Set<Integer> getIDs() {
-            return hashRedisConnection.getSetMembers(resultSlot).stream().map( a ->Integer.parseInt(a)).collect(Collectors.toCollection(HashSet<Integer>::new));
+            return hashRedisConnection.getSetMembers(resultSlot).stream().map(a -> Integer.parseInt(a)).collect(Collectors.toCollection(HashSet<Integer>::new));
         }
 
         @Override
-        public void cleanupHashSets(){
-            for (String key:keysToHashOn) {
-                for(int i=0;i<hashSlotNumber;++i){
-                    hashRedisConnection.delkey(key+i);
+        public void cleanupHashSets() {
+            for (String key : keysToHashOn) {
+                for (int i = 0; i < hashSlotNumber; ++i) {
+                    hashRedisConnection.delkey(key + i);
                 }
             }
         }
+
         @Override
         protected void finalize() throws Throwable {
             super.finalize();
@@ -332,8 +350,8 @@ public class SimpleSelectQuery {
         if (!redisConnection.keyExists(pk)) return false;
         Iterator<String> operatorIterator = query.operators.iterator();
         for (Pair<String, String> p : query.constraints) {
-            String realVal=null;
-            if(!p.getKey().equals(XML.getTable(query.tableName,Worker.currentlyWorking).getKey().getName())) {
+            String realVal = null;
+            if (!p.getKey().equals(XML.getTable(query.tableName, Worker.currentlyWorking).getKey().getName())) {
                 realVal = redisConnection.getColumn(pk, p.getKey());
             }
             try {
@@ -406,7 +424,7 @@ public class SimpleSelectQuery {
         throw new comm.ServerException("Internal error, db is in inconsistent state regarding index slots");
     }
 
-    public PartialResult select(Query query,PartialResult result) throws comm.ServerException {
+    public PartialResult select(Query query, PartialResult result) throws comm.ServerException {
 
         System.out.println(query);
 
@@ -440,7 +458,7 @@ public class SimpleSelectQuery {
                     }
                     return result;
                 } else {
-                    IDSource source = new FTSIDProvider(getUniqueSlot(selectedTable, p.getKey()),redisConnection,true);
+                    IDSource source = new FTSIDProvider(getUniqueSlot(selectedTable, p.getKey()), redisConnection, true);
                     Set<String> pres = new TreeSet<>();//TODO implement streaming here also
 
                     if (operator.equals(">")) {
@@ -507,7 +525,7 @@ public class SimpleSelectQuery {
         }
 
         if (equalityIndexed.size() == 0 && biggerIndexed.size() == 0 && smallerIndexed.size() == 0) {//in this case, there are no indexed columns, initiate FTS
-            IDSource ids = new FTSIDProvider(selectedTable.getSlotNumber(),redisConnection,true);
+            IDSource ids = new FTSIDProvider(selectedTable.getSlotNumber(), redisConnection, true);
             while (ids.hasNext()) {
                 for (String id : ids.readNext()) {
                     if (thisTablePKSelectable(query, id)) {
@@ -521,13 +539,13 @@ public class SimpleSelectQuery {
             //set the result of the selection based on the first index file
             IDSource ids;
             if (equalityIndexed.size() > 0) {
-                ids = new IndexIDProvider(getIndexSlot(selectedTable, equalityIndexed.get(0).getKey()), equalityIndexed.get(0).getValue(),redisConnection);
+                ids = new IndexIDProvider(getIndexSlot(selectedTable, equalityIndexed.get(0).getKey()), equalityIndexed.get(0).getValue(), redisConnection);
                 while (ids.hasNext()) {
                     indexset.addAll(new ArrayList<>(ids.readNext()));//get everything
                 }
                 for (int i = 1; i < equalityIndexed.size(); i++) {//for every other indexed Column, perform intersection
                     Set<String> partialindexset = new TreeSet<>();
-                    ids = new IndexIDProvider(getIndexSlot(selectedTable, equalityIndexed.get(i).getKey()), equalityIndexed.get(i).getValue(),redisConnection);
+                    ids = new IndexIDProvider(getIndexSlot(selectedTable, equalityIndexed.get(i).getKey()), equalityIndexed.get(i).getValue(), redisConnection);
                     while (ids.hasNext()) {
                         partialindexset.addAll(new ArrayList<>(ids.readNext()));
                     }
@@ -537,12 +555,12 @@ public class SimpleSelectQuery {
 
             if (biggerIndexed.size() > 0) {
                 for (Pair<String, String> p : biggerIndexed) {
-                    IDSource biggerIndexSource = new FTSIDProvider(getIndexSlot(selectedTable, p.getKey()),redisConnection,true);
+                    IDSource biggerIndexSource = new FTSIDProvider(getIndexSlot(selectedTable, p.getKey()), redisConnection, true);
                     Set<String> biggerSet = new HashSet<>();
                     while (biggerIndexSource.hasNext()) {
                         for (String indexed : biggerIndexSource.readNext()) {
                             if (Integer.parseInt(indexed) > Integer.parseInt(p.getValue())) {
-                                IDSource setSource = new IndexIDProvider(getIndexSlot(selectedTable, p.getKey()), indexed,redisConnection);
+                                IDSource setSource = new IndexIDProvider(getIndexSlot(selectedTable, p.getKey()), indexed, redisConnection);
                                 while (setSource.hasNext()) {
                                     biggerSet.addAll(setSource.readNext());
                                 }
@@ -558,12 +576,12 @@ public class SimpleSelectQuery {
             }
             if (smallerIndexed.size() > 0) {
                 for (Pair<String, String> p : smallerIndexed) {
-                    IDSource smallerIndexSource = new FTSIDProvider(getIndexSlot(selectedTable, p.getKey()),redisConnection,true);
+                    IDSource smallerIndexSource = new FTSIDProvider(getIndexSlot(selectedTable, p.getKey()), redisConnection, true);
                     Set<String> smallerSet = new HashSet<>();
                     while (smallerIndexSource.hasNext()) {
                         for (String indexed : smallerIndexSource.readNext()) {
                             if (Integer.parseInt(indexed) < Integer.parseInt(p.getValue())) {
-                                IDSource setSource = new IndexIDProvider(getIndexSlot(selectedTable, p.getKey()), indexed,redisConnection);
+                                IDSource setSource = new IndexIDProvider(getIndexSlot(selectedTable, p.getKey()), indexed, redisConnection);
                                 while (setSource.hasNext()) {
                                     smallerSet.addAll(setSource.readNext());
                                 }

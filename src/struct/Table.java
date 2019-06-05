@@ -7,9 +7,10 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TreeItem;
 
 public class Table {
-    public Table(){
+    public Table() {
 
     }
+
     public Table(String tableName, int slotNumber, int rowLength, Structure tableStructure, PrimaryKey key, ForeignKeys foreignKeys, UniqueAttributes uniqueAttributes, IndexFiles indexFiles) {
         this.tableName = tableName;
         this.slotNumber = slotNumber;
@@ -80,7 +81,7 @@ public class Table {
     }
 
     public ForeignKeys getForeignKeys() {
-        if(foreignKeys == null)
+        if (foreignKeys == null)
             foreignKeys = new ForeignKeys();
         return foreignKeys;
     }
@@ -90,7 +91,7 @@ public class Table {
     }
 
     public UniqueAttributes getUniqeAttributes() {
-        if(uniqueAttributes == null)
+        if (uniqueAttributes == null)
             uniqueAttributes = new UniqueAttributes();
         return uniqueAttributes;
     }
@@ -102,7 +103,7 @@ public class Table {
     public IndexFiles getIndexFiles() {
         if (indexFiles == null)
             indexFiles = new IndexFiles();
-            return indexFiles;
+        return indexFiles;
     }
 
     public void setIndexFiles(IndexFiles indexFiles) {
@@ -111,9 +112,9 @@ public class Table {
 
     @Override
     public String toString() {
-        return "\ntable "+tableName+" that is stored in  slot no: "+slotNumber + "\n that has "+ rowLength+" rows\n"+
-                "that has the following structure \n"+tableStructure+"\n primary key "+key+"\nforeign keys "+foreignKeys+
-                "\nunique attributes "+uniqueAttributes+"\nindex files "+indexFiles;
+        return "\ntable " + tableName + " that is stored in  slot no: " + slotNumber + "\n that has " + rowLength + " rows\n" +
+                "that has the following structure \n" + tableStructure + "\n primary key " + key + "\nforeign keys " + foreignKeys +
+                "\nunique attributes " + uniqueAttributes + "\nindex files " + indexFiles;
 
     }
 
