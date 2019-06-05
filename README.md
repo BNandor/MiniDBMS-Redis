@@ -17,12 +17,9 @@ using Redis as a key value store.
 
 > CREATE INDEX FILE
 
-> Simple SELECT 
-### Working on
+> Simple SELECT
 
 > SELECT +  JOIN
-
-### Queries to come
 
 > SELECT +  GROUP BY
 
@@ -34,3 +31,12 @@ using Redis as a key value store.
 
 ### Insertion
 ![Window](https://raw.githubusercontent.com/BNandor/MiniDBMS-Redis/master/img/insert.png)
+
+### Simple Select
+![Window](https://raw.githubusercontent.com/BNandor/MiniDBMS-Redis/master/img/simpleSelectQuery.png) ![Window](https://raw.githubusercontent.com/BNandor/MiniDBMS-Redis/master/img/simpleSelectOutput.png)
+
+### Select + Join
+![Window](https://raw.githubusercontent.com/BNandor/MiniDBMS-Redis/master/img/selectJoinQuery.png) ![Window](https://raw.githubusercontent.com/BNandor/MiniDBMS-Redis/master/img/selectJoinOutput.png)
+
+### Select + Group By
+![Window](https://raw.githubusercontent.com/BNandor/MiniDBMS-Redis/master/img/selectGroupByQuery.png) ![Window](https://raw.githubusercontent.com/BNandor/MiniDBMS-Redis/master/img/selectGroupByOutput.png)
